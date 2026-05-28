@@ -16,10 +16,16 @@ ENV/
 # VS Code
 .vscode/
 
-# Data & Models (WICHTIG für den Cluster!)
+# Data & Models 
 data/
 models/
 weights/
 *.pth
 *.pt
 *.safetensors
+*.csv
+
+# results
+/tabllm_results
+/results
+*.txt

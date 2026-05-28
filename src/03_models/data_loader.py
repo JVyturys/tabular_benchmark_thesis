@@ -26,6 +26,7 @@ def prepare_financial_data(df: pd.DataFrame, cont_cols: list, cat_cols: list, ta
     """
     Führt Imputation, Skalierung und Encoding durch und gibt PyTorch DataLoaders zurück.
     """
+    # Imputationsmethode muss noch überlegt werden, für Test erstmal MEDIAN IMPUTATION.
     print("[*] Starte Pre-Processing der Finanzdaten...")
     
     # 1. Train/Test Split (80/20)
