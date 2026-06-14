@@ -29,3 +29,9 @@ weights/
 /tabllm_results
 /results
 *.txt
+
+# archived code
+/archive
+
+#logs
+/log_config.py
