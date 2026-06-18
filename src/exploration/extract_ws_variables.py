@@ -1,15 +1,6 @@
-#################################################################
 
-# DISCLAIMER:
-# A lot of the code within this script is commented out.
-# I left the explorative part of the code base, just to document the process
-# of how I have arrived at the final set. However, those parts of code are not needed 
-# to pull the final set.
-# 
-# Executing the code base as it is, will return the
-# set of variables that are used in the final data set.
-
-#################################################################
+# Commented-out code left for documentation
+# For final set of variables run query1 & query4  
 
 import wrds
 import config as con
@@ -47,12 +38,10 @@ item_list = ",".join(str(x) for x in item_numbers)
 #     ORDER BY number
 # """
 # output = db.raw_sql(query_2).to_csv('ws_variables_ii.txt', index=False)
-# log_var.section("wrds_ws_funda - Worldscope fundamental financial variable codes")
-# log_var.log(query_2)
-# log_var.log("output saved as ws_variables_ii.txt in path")
 
-## 3. Demystifying industry codes, by empirically choosing the most frequent code -> this one should apply to all industries
-### 3.1 Checking meaning of industry encoding within the ws variable scheme
+
+## 3. Demystifying industry codes
+### 3.1 Frequency of each industry code within set
 # query_3 = f"""
 #     SELECT industry, COUNT(*) as n
 #     FROM tr_worldscope.wsitem
@@ -62,11 +51,6 @@ item_list = ",".join(str(x) for x in item_numbers)
 # """
 # output = db.raw_sql(query_3)
 
-# log_ws_industry.section("Frequency of industrial codes within the worldscope variable set.")
-# log_ws_industry.log(query_3)
-# log_ws_industry.log(output)
-# log_ws_industry.log("As the '111111' seems to be be the most frequent code assigned to the variables")
-# log_ws_industry.log("I assume, that this code flags the variables that apply to all distinct industries.")
 
 ### 3.2 Filtering the variable list for 'all-industry' code excluding rolling averages and growth rates.
 query_4 = f"""
