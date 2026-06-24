@@ -1,6 +1,8 @@
 #######################################################################
 # This script creates the geography reference table for the lvl3permid 
-# geo codes.
+# geo codes. This tables allows me to check in which region and country 
+# an entity is based. Will be userd for geographic performance deivergence 
+# analysis.
 #
 # Output: geo_reference_table.csv
 #######################################################################
@@ -55,9 +57,9 @@ try:
     ref_log.log(query)
     ref_log.log("Shape:\n")
     ref_log.log(geo_ref_shape)
-    ref_log.log("Null entires in table:")
+    ref_log.log("\nNull entires in table:")
     ref_log.log(geo_ref_nulls)
-    ref_log.log("Data preview:")
+    ref_log.log("\nData preview:")
     ref_log.log(geo_ref_preview)
 except: 
     print(f"An error occured during logging...")
