@@ -26,12 +26,12 @@ weights/
 *.csv
 
 # results
-/tabllm_results
-/results
+results/
 *.txt
+*.pdf
 
 # archived code
-/archive
+archive/
 
 #logs
-/log_config.py
+*/log_config.py

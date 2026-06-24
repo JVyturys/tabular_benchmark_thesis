@@ -1,0 +1,1 @@
+wrds_log = "jaunius_vyturys"
