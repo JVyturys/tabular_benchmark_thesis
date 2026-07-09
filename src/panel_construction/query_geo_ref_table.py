@@ -1,10 +1,14 @@
 #######################################################################
-# This script creates the geography reference table for the lvl3permid 
-# geo codes. This tables allows me to check in which region and country 
-# an entity is based. Will be userd for geographic performance deivergence 
-# analysis.
-#
+''' 
+III. 
+
+This script creates the geography reference table for the lvl3permid 
+geo codes. This tables allows me to check in which region and country 
+an entity is based. Will be userd for geographic performance deivergence 
+analysis.
+
 # Output: geo_reference_table.csv
+'''
 #######################################################################
 
 import wrds

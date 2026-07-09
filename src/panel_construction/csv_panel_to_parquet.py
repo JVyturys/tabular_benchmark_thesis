@@ -1,6 +1,10 @@
 ######################################################################
-# This file transforms the final panel                               #
-# into a compressed 'parquet' format for CPU friendly data handling. #
+'''
+
+This file transforms the panel                               
+into a compressed 'parquet' format for CPU friendly data handling. 
+
+'''
 ######################################################################
 
 import config as con

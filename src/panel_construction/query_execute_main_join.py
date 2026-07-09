@@ -1,8 +1,12 @@
 #######################################################################
-# This script executes the join of the distinct wrds tables,based on  #
-# the results of the data exploration.
-# 
-# Output: main merged data set "panel_final.csv"                      #  
+''' 
+I.
+
+This script executes the join of the distinct wrds tables,based on  
+the results of the data exploration.
+
+Output: main merged data set "panel_final.csv"                      
+'''
 #######################################################################
 
 import wrds
