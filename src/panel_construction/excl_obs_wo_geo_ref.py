@@ -1,5 +1,7 @@
 ##################################################
 '''
+V.
+
 While constructing table for the geographic referencing of the entities , it turned out that 6 observations do not have 
 geographic information. Since my main analysis perspective looks at model performance with respect to geographic subgroups of the data
 I do not want to include observations, of which I can not evaluate the respective geo performance.
@@ -31,26 +33,30 @@ for entity in df['orgpermid']:
 
 frequency = Counter(indicies)
 df_clean = df[indicies]
-print(f"Unique entities clean data: {df_clean['orgpermid'].nunique()}")
+print(f'''\n\n##########\n\nDimensionality of cleaned data frame:{df_clean.shape}\n
+Unique entities in clean data: {df_clean['orgpermid'].nunique()}\n\n##########\n\n''')
 
 assert df_clean['orgpermid'].nunique() == geo_ref['orgpermid'].nunique(), \
     "Entity mismatch between panel and geography reference"
 print("Assertion passed — panel and geography table describe identical entity universe")
 
+print(df_clean.shape)
+
 df_clean.to_parquet("panel_clean", index=False)
 
 
-#############################
-# logging results -----------
-#############################
+################################################
+# ------- logging results -----------
+################################################
 
-logging = Al(con.RESULTS_DIR / "joined_panel", filename="cleaning_panel_geo_ref")
-logging.section("Removing entities without geographic reference.")
-logging.log("Number of entities WITH geographic reference:")
-logging.log(len(geo_ref))
 
-logging.log("\nNumber of unique entities in raw data panel:")
-logging.log(df["orgpermid"].nunique())
+# logging = Al(con.RESULTS_DIR / "joined_panel", filename="cleaning_panel_geo_ref")
+# logging.section("Removing entities without geographic reference.")
+# logging.log("Number of entities WITH geographic reference:")
+# logging.log(len(geo_ref))
 
-logging.log("\nNumber of entities in panel after cleaning:")
-logging.log(df_clean['orgpermid'].nunique())
+# logging.log("\nNumber of unique entities in raw data panel:")
+# logging.log(df["orgpermid"].nunique())
+
+# logging.log("\nNumber of entities in panel after cleaning:")
+# logging.log(df_clean['orgpermid'].nunique())
