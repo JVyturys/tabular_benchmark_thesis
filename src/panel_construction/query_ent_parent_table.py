@@ -46,7 +46,7 @@ try:
     print(ref_parents.shape)
     print(ref_parents.isnull().sum())
     
-    ref_parents.to_parquet(con.PROJECT_ROOT / "data" / "raw" / "parent_ref_table.parquet") # saving results
+    ref_parents.to_parquet(con.PROJECT_ROOT / "data" / "raw" / "parent_ref_table.parquet", index=False) # saving results
 
     print(f"Parent reference table successfully saved.")
 except Exception as error:
