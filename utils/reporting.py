@@ -1,4 +1,7 @@
 from pathlib import Path
+import datetime 
+
+ct = datetime.datetime.now()
 
 class AnalysisLogger:
     def __init__(self, output_path, filename, overwrite=True):
@@ -19,12 +22,13 @@ class AnalysisLogger:
 
     def section(self, title):
         """Creates a clean visual break for new analysis steps."""
+        ct = datetime.datetime.now()
         divider = "=" * 66
         formatted_title = f"\n{divider}\n{title}\n{divider}"
         
         print(formatted_title) # Print to terminal
         with open(self.output_path, "a") as f:
-            f.write(formatted_title + "\n\n") # Append to file
+            f.write(formatted_title + "\n\n" + ct) # Append to file
 
     def log(self, message, label=None):
         """Prints a step to the terminal and appends it to the log file."""

@@ -53,3 +53,5 @@ except Exception as error:
     print(f"An error occured during execution of query 1.\n Error message:{error}")
 
 
+
+
