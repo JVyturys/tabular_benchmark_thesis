@@ -1,5 +1,6 @@
 ##################################################
 '''
+VII. 
 This script investigates the attrition of north american entities after the main join.
 '''
 ##################################################
