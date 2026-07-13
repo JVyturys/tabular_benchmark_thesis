@@ -35,4 +35,9 @@ archive/
 
 #logs
 */log_config.py
-#
+
+#plot artifacts
+os
+pd
+plt
+sns
