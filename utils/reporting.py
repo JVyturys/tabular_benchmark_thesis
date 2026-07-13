@@ -22,7 +22,7 @@ class AnalysisLogger:
 
     def section(self, title):
         """Creates a clean visual break for new analysis steps."""
-        ct = datetime.datetime.now()
+        ct = str(datetime.datetime.now())
         divider = "=" * 66
         formatted_title = f"\n{divider}\n{title}\n{divider}"
         

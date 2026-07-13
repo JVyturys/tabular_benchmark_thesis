@@ -4,7 +4,8 @@ II.
 
 Joining the company IDs with the geography IDs led to an attrition 
 
-of 1438 companies. This script looks at why this is happening.
+of 1438 companies. This script identifies the origin of the entities emipircally and appends 
+the missing information.
 '''
 ######################################################################
 
