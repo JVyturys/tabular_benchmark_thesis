@@ -19,4 +19,10 @@ results_path = con.RESULTS_DIR/ 'joined_panel'
 
 df = pd.read_parquet(data_path)
 geo_ref = pd.read_csv(con.RAW_DATA_ROOT / "geo_ref.csv")
-parent_red = pd.read_parquet(con.RAW_DATA_ROOT / "parent_ref.parquet")
+parent_ref = pd.read_parquet(con.RAW_DATA_ROOT / "parent_ref.parquet")
+
+print(parent_ref.head())
+print(geo_ref.head())
+print(df.head())
+
+# For each entitiy check if the lvl3permid does not change over the years
