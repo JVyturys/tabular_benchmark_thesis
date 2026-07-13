@@ -22,7 +22,7 @@ output = db.raw_sql(query)
 log_esg.section("NaN within the tr_esg.wrds_ref_esg 'valuescore' column:")
 log_esg.log(query)
 log_esg.log(output)
- 
+
 # Summary statistics ESGScores:
 query = """
     SELECT 
