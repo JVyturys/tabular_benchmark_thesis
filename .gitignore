@@ -36,8 +36,8 @@ archive/
 #logs
 */log_config.py
 
-#plot artifacts
-os
-pd
-plt
-sns
+# postscript
+os.ps
+pd.ps
+plt.ps
+sns.ps
