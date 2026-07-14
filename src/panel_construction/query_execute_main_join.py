@@ -82,7 +82,7 @@ ws_items_col = [f"item{i:.0f}" for i in ws_items]
 
 ## defining SELECT clause for join operation in SQL
 feature_cols = ','.join(f"f.{item}" for item in ws_items_col)
- 
+
 try:
     # 3. Executing join for panel data
     query_4 = f"""
