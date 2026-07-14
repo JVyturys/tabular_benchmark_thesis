@@ -10,6 +10,7 @@ import pandas as pd
 import geopandas as gpd
 import config as con
 import matplotlib.pyplot as plt
+import utils.custom_colormaps
 from matplotlib.colors import PowerNorm
 from matplotlib.ticker import ScalarFormatter
 
@@ -29,7 +30,7 @@ df_merged = df_subset.merge(geo_subset, on="orgpermid", how='left')
 # counting frequency for lvl3permids
 reg_counts = df_merged['lvl3permid'].value_counts().reset_index()
 reg_counts.columns = ['lvl3permid', 'observation_count']
-print(reg_counts.head())
+# print(reg_counts.head())
 
 # load ZIP from Natural Earth
 url = "https://naturalearth.s3.amazonaws.com/110m_cultural/ne_110m_admin_0_countries.zip"
@@ -80,7 +81,7 @@ world.plot(ax=ax2,
 world_merged.plot(ax=ax2,
                   column='lvl3permid',
                   categorical=True,
-                  cmap='tab20',
+                  cmap='high_contrast_tab20',
                   edgecolor='black',
                   linewidth=0.5,
                   legend=True)
