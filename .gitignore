@@ -37,7 +37,5 @@ archive/
 */log_config.py
 
 # postscript
-os.ps
-pd.ps
-plt.ps
-sns.ps
+*.postscript
+*.ps 
