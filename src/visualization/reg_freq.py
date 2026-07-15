@@ -43,9 +43,17 @@ geo_lookup = geo_lookup.drop_duplicates()
 # merging count and lookup data
 reg_count_enriched = reg_counts.merge(geo_lookup, on='lvl3permid', how='left')
 
+
+
+
 # merging with spatial data
 world_merged = world.merge(reg_count_enriched, left_on='ISO_A2', right_on='lvl5isocntry')
 regional_map = world_merged.dissolve(by='lvl3permid')
+
+
+missing = set(reg_count_enriched['lvl5isocntry']) - set(world_merged['lvl5isocntry'])
+print(sorted(missing))
+print(world[world['ISO_A2'] == '-99'][['NAME', 'ISO_A2']])
 
 # plot
 ## foundational gray map
