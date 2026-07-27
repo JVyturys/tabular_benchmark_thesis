@@ -12,10 +12,10 @@ Cast all ID columns to a non-float type.
 The assignment logic is build from two masks.
 
 Close with four assertions:
-i) cluster_key has exactly 3 nulls before the singleton fill
-ii) the ultimate-branch and immediate-branch key sets
-    are disjoint 
-iii) entity count in == entity count out
+i) cluster_key has exactly 3 nulls before the singleton fill and zero after singleton
+   cluster assignment,
+ii) the ultimate-branch and immediate-branch key sets are disjoint, 
+iii) entity count pre merge is equal to entity count after merge
 iv) every orgpermid in the panel has exactly one cluster_key
 '''
 ##################################################
@@ -38,8 +38,14 @@ geo = pd.read_csv(con.PROJECT_ROOT / "data" / "raw" / "geo_ref.csv")
 parent = pd.read_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent.parquet")
 
 # cast ids to int
-org_id = parent['orgpermid'].astype('int').to_list()
-parent_id = parent['ultimateparentorgpermid'].fillna(0).astype('int').to_list()
+df['orgpermid'] = df['orgpermid'].astype('int64')
+geo['lvl3permid'] = geo['lvl3permid'].astype('int64')
+parent['ultimateparentorgpermid'] = parent['ultimateparentorgpermid'].astype('Int64')
+parent['immediateparentorgpermid'] = parent['immediateparentorgpermid'].astype('Int64')
+
+# cast ids to lists
+org_id = parent['orgpermid'].to_list()
+parent_id = parent['ultimateparentorgpermid'].dropna().to_list()
 
 # turn into string for SQL query
 org_string = ','.join(f"{id}" for id in org_id)
@@ -54,7 +60,7 @@ query = f"""
 """ 
 
 df_parent_enttype = db.raw_sql(query)
-df_parent_enttype.to_parquet('parent_ent_type.parquet', index=False)
+df_parent_enttype.to_parquet(con.PROJECT_ROOT / "data" / "raw" / "parent_ent_type.parquet", index=False)
 
 # create table with set of entity IDs in panel
 df_cluster_keys = df[['orgpermid']].drop_duplicates()
@@ -116,5 +122,23 @@ assert len(df_overlaps) == 0,  '''Unresolved key intersection:
  a cluster key is an immediateparent ID and at the same time an 
  ultimateparent ID'''
 
+print(df_cluster_keys.columns)
+
+df_cluster_keys = df_cluster_keys[['orgpermid', 'cluster_key',
+                                   'ultparent_ent_type']]
+
+df_cluster_keys['key_source'] = np.nan
+df_cluster_keys.loc[singleton_cluster_mask, 'key_source'] = 0
+df_cluster_keys.loc[mask_ult, 'key_source'] = 1
+df_cluster_keys.loc[mask_imm, 'key_source'] = 2
+
+assert df_cluster_keys['key_source'].isnull().sum() == 0, '''Unresolved NaN in "key-source" column''' 
+
+assert df_cluster_keys.groupby('orgpermid')['cluster_key'].nunique().max() == 1, '''Mismatch between orgpermid and cluster key allocation.'''
+print(df_cluster_keys.groupby(['orgpermid', 'cluster_key']).size().sum())
+
+
+# ouput cluster reference file
+df_cluster_keys.to_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_cluster_keys.parquet", index=False)
 
 
