@@ -58,6 +58,7 @@ df_parent_enttype.to_parquet('parent_ent_type.parquet', index=False)
 
 # create table with set of entity IDs in panel
 df_cluster_keys = df[['orgpermid']].drop_duplicates()
+ent_nmb = len(df_cluster_keys) # storing number of entities for post merge assertion 
 
 # add parent inforamtion
 df_cluster_keys = df_cluster_keys.merge(parent, how='left', on='orgpermid')
@@ -94,8 +95,14 @@ overlapping_keys = set(keys_assigned_from_ult).intersection(set(keys_assigned_fr
 ## filter dataframe for intersection 
 df_overlaps = df_cluster_keys[df_cluster_keys['cluster_key'].isin(overlapping_keys)]
 
+# test data quality
+assert len(df_cluster_keys) == ent_nmb, "Possible merge error: entities pre-merge != entities post-merge"
+
 
 print(df_cluster_keys.shape)
+
+
+
 print(df_cluster_keys['ultparent_ent_type'].value_counts(dropna=False))
 print(df_cluster_keys[['cluster_key']].isnull().sum())
 print(df_cluster_keys.query('cluster_key.isnull()'))
