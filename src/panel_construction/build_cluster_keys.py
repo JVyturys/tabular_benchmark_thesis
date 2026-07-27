@@ -98,6 +98,7 @@ singleton_clusters = np.arange(start_ID, start_ID - n_nan, -1)
 df_cluster_keys.loc[singleton_cluster_mask, 'cluster_key'] = singleton_clusters
 
 # check if all NaN cluster keys have been resolved
+n_nan = df_cluster_keys['cluster_key'].isnull().sum()
 assert n_nan == 0, "Error: Unresolved NaNs in the cluster key"
 
 # check: are any keys assiged that are an ultimateparerent for one and an immediate parent for another?
@@ -110,15 +111,10 @@ overlapping_keys = set(keys_assigned_from_ult).intersection(set(keys_assigned_fr
 ## filter dataframe for intersection 
 df_overlaps = df_cluster_keys[df_cluster_keys['cluster_key'].isin(overlapping_keys)]
 
-# test data quality
+## check if resulting intersection is empty 
+assert len(df_overlaps) == 0,  '''Unresolved key intersection:
+ a cluster key is an immediateparent ID and at the same time an 
+ ultimateparent ID'''
 
 
 
-print(df_cluster_keys.shape)
-
-print(df_cluster_keys['ultparent_ent_type'].value_counts(dropna=False))
-print(df_cluster_keys[['cluster_key']].isnull().sum())
-print(df_cluster_keys.query('cluster_key.isnull()'))
-print(df_overlaps)
-print(f"Number of overlapping keys: {len(overlapping_keys)}")
-print(f"Rows with intersecting keys: {len(df_overlaps)}")
