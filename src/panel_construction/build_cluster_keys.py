@@ -67,6 +67,8 @@ df_cluster_keys = df_cluster_keys.merge(df_parent_enttype,
                                         left_on='ultimateparentorgpermid',
                                         right_on='orgpermid')
 
+assert len(df_cluster_keys) == ent_nmb, "Possible merge error: entities pre-merge != entities post-merge" # data-quality check
+
 # rename columns
 df_cluster_keys = df_cluster_keys[['orgpermid_x', 'immediateparentorgpermid_x', 'ultimateparentorgpermid_x', 'typecode']]
 df_cluster_keys = df_cluster_keys.rename(columns={'ultimateparentorgpermid_x':'ultimateparentorgpermid',
@@ -85,6 +87,19 @@ mask_imm = df_cluster_keys['ultparent_ent_type'].isin(['GVT', 'GVTDA', 'CINV'])
 df_cluster_keys.loc[mask_ult, 'cluster_key'] = df_cluster_keys.loc[mask_ult, 'ultimateparentorgpermid']
 df_cluster_keys.loc[mask_imm, 'cluster_key'] = df_cluster_keys.loc[mask_imm, 'immediateparentorgpermid']
 
+# data quality check
+singleton_cluster_mask = df_cluster_keys['cluster_key'].isnull()
+n_nan = singleton_cluster_mask.sum()
+assert n_nan == 3, "Error: check data input, 3 entities should not have an ultimateparentorgpermid"
+
+# assign singleton cluster IDs to entities without parents
+start_ID = 9999999999
+singleton_clusters = np.arange(start_ID, start_ID - n_nan, -1)
+df_cluster_keys.loc[singleton_cluster_mask, 'cluster_key'] = singleton_clusters
+
+# check if all NaN cluster keys have been resolved
+assert n_nan == 0, "Error: Unresolved NaNs in the cluster key"
+
 # check: are any keys assiged that are an ultimateparerent for one and an immediate parent for another?
 keys_assigned_from_ult = df_cluster_keys.loc[mask_ult, 'cluster_key']
 keys_assigned_from_imm = df_cluster_keys.loc[mask_imm, 'cluster_key']
@@ -96,12 +111,10 @@ overlapping_keys = set(keys_assigned_from_ult).intersection(set(keys_assigned_fr
 df_overlaps = df_cluster_keys[df_cluster_keys['cluster_key'].isin(overlapping_keys)]
 
 # test data quality
-assert len(df_cluster_keys) == ent_nmb, "Possible merge error: entities pre-merge != entities post-merge"
+
 
 
 print(df_cluster_keys.shape)
-
-
 
 print(df_cluster_keys['ultparent_ent_type'].value_counts(dropna=False))
 print(df_cluster_keys[['cluster_key']].isnull().sum())
