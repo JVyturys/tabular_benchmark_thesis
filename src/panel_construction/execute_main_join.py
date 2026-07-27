@@ -111,7 +111,7 @@ try:
 except:
     print(f"An error occured during the main data merge SQL pull!")
 
-# 4. Comparing entity converage before and after the join:
+# 4. Compare entity converage before and after the join:
 # Number of entities after join:
 try:
         query_5 = f"""
@@ -175,7 +175,7 @@ except:
      print(f"An error occured during attrition (query 5&6) SQL pull!")
 
 try:    
-    # 5. Checking distributional characteristics of dropped values:
+    # 5. Check distributional characteristics of dropped values:
     query_7 = f"""
         WITH skeleton AS ( 
             SELECT DISTINCT

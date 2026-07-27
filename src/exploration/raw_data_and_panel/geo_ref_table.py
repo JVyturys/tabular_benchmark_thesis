@@ -7,7 +7,7 @@ geo codes. This tables allows me to check in which region and country
 an entity is based. Will be userd for geographic performance deivergence 
 analysis.
 
-# Output: geo_reference_table.csv
+# Output: geo_reference_table.parquet
 '''
 #######################################################################
 
@@ -42,7 +42,7 @@ try:
     """
 
     # Saving as csv
-    db.raw_sql(query).to_csv("geo_reference_table.csv", index=False)
+    db.raw_sql(query).to_parquet("geo_reference_table.parquet", index=False)
 
     # Saving SQL pull as df for inspection
     ref_geography = db.raw_sql(query)
