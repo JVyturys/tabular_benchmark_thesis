@@ -2,30 +2,32 @@
 '''
 II.
 
-Joining the company IDs with the geography IDs led to an attrition 
-
-of 1438 companies. This script identifies the origin of the entities emipircally and appends 
-the missing information.
+Investigate the attrition of 1438 entities after joining the geography
+inforamtion.
 '''
 ######################################################################
-
 
 import wrds
 import pandas as pd
 import config as con
 import log_config as lg
 
-data_path = con.FINAL_PANEL_PARQUET
+# initialize database connection
+db = wrds.Connection(wrds_username=lg.wrds_log)
+
+#define paths
+data_path = con.PANEL
 results_path = con.RESULTS_DIR / "joined_panel" / "geo_id_merge_attrition"
 
-# Defining entitiy index for SQL query based on final panel
+# read data
 panel = pd.read_parquet(data_path)
+
+# define ID string for the SQL query 
 ids = panel["orgpermid"].dropna().astype(int).unique()
 id_list = ','.join(str(id) for id in ids)
 
-db = wrds.Connection(wrds_username=lg.wrds_log)
-
 try:
+    # check number of entities with geo ID
     query_1 = f"""
         SELECT
             COUNT(*) AS total,
@@ -39,14 +41,14 @@ try:
         WHERE orgpermid IN ({id_list}) 
     """
 
-    # Pulling from database
-    #print(db.raw_sql(query_1))
+    # execute SQL query
+    print(db.raw_sql(query_1))
 
 except Exception as error: 
     print(f"An error occured during the query_1 SQL pull:\n{error}")
 
-
 try:
+    # check number of entities that have an ID but are not referenced in tr database
     query_2 = f"""
         SELECT
             p.domcntrypermid,
@@ -61,12 +63,14 @@ try:
         ORDER BY n_entities DESC
     """
 
-    #print(db.raw_sql(query_2))
+    # execute SQL query
+    print(db.raw_sql(query_2))
 
 except Exception as error:
     print(f"An error occured during the query_2 SQL pull:\n{error}")
 
 try:
+    # identify 105758 geo ID
     query_3 = f"""
         SELECT *
         FROM tr_common.tmcregncntrymap
@@ -77,13 +81,14 @@ try:
             OR lvl4permid = 105758
             OR lvl5permid = 105758
     """
-    #print(query_3)
-    #print(db.raw_sql(query_3))
+    # execute SQL query
+    print(db.raw_sql(query_3))
     
 except Exception as error:
     print(f"An error occured during the query_3 SQL pull:\n{error}")
 
 try:
+    # emirically identify origin of entities with 105758 lvl3permid  
     query_4 = f"""
         SELECT 
             p.orgpermid,
@@ -97,9 +102,9 @@ try:
             AND p.domcntrypermid = 105758
         LIMIT 30
 """
-    # print(query_4)
-    # print(db.raw_sql(query_4))
-    # It appears that the unmatched entities are chineese. 
+    # execute SQL query
+    print(db.raw_sql(query_4))
+
 except Exception as error:
     print(f"An error occured during the query_4 SQL pull:\n{error}")
 
@@ -114,14 +119,14 @@ try:
         WHERE 
             lvl5isocntry = 'CN'      
 """
-    # print(query_5)
-    # print(db.raw_sql(query_5))
+    # execute SQL query
+    print(db.raw_sql(query_5))
     
 except Exception as error:
     print(f"An error occured during the query_5 SQL pull:\n{error}")
 
 try:
-    # Selcting all chineese companies
+    # Select all chineese companies
     query_6 = f"""
         SELECT DISTINCT orgpermid
         FROM tr_common.permorgref
@@ -136,15 +141,11 @@ try:
 
     geo_ref = pd.read_csv(con.PROJECT_ROOT/"data"/"raw"/"geo_reference_table.csv") # loading geo reference table
     geo_ref_comp = pd.concat([geo_ref, chineese_entities], ignore_index=True) # concatenating wit geo reference table
-
-    # print(geo_ref_comp.head())
-    # print(geo_ref_comp.shape)
-    # print(geo_ref_comp.isnull().sum())
     
 except Exception as error:
     print(f"An error occured during the query_6 SQL pull:\n{error}")
 
-# investigating last unknown entity
+# investigate last unknown entity
 try:
     query_7 =  f"""
         SELECT 
@@ -158,8 +159,6 @@ try:
                         FROM tr_common.permorgref
                         WHERE domcntrypermid = 110515)
     """
-
-    #print(db.raw_sql(query_7))
 
     # the last missing entitiy appears to be a sudaneese one
 
@@ -178,17 +177,14 @@ try:
         WHERE 
             lvl5isocntry = 'SD'
     """
-
+    # execute SQL query
     print(db.raw_sql(query_8))
 
 except Exception as error:
     print(f"An error occured during the query_8 SQL pull:\n{error}")
 
-
-
-
 try:
-    # appending sudaneese entitiy
+    # append sudaneese entitiy
     query_9 = f"""
                 SELECT DISTINCT orgpermid
         FROM tr_common.permorgref
@@ -201,9 +197,8 @@ try:
     sudan_ent['lvl5isocntry'] = 'SD'
 
     geo_ref_comp = pd.concat([geo_ref_comp, sudan_ent], ignore_index=True) # concatenating wit geo reference table
-    
-    
-    # saving clean reference table
+        
+    # save clean reference table
     geo_ref_comp.to_csv(con.PROJECT_ROOT / "data" / "raw" / "geo_ref_table_clean", index=False)
 
     # print(geo_ref_comp.shape)

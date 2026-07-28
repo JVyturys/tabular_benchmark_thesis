@@ -17,7 +17,7 @@ import log_config as lc
 # Initializing paths and data base connection
 db = wrds.Connection(wrds_username = lc.wrds_log)
 
-data_path = con.FINAL_PANEL_PARQUET
+data_path = con.PANEL
 output_path = con.PROJECT_ROOT / "data" / "raw"
 results_path = con.RESULTS_DIR/ "exploration" / "joined_panel"
 

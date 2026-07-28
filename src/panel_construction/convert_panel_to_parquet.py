@@ -13,7 +13,7 @@ into a compressed 'parquet' format for CPU friendly data handling.
 import config as con
 import pandas as pd
 
-data_path = con.DATA_FINAL_PANEL
+data_path = con.PANEL
 output_path = con.RESULTS_DIR
 
 panel = pd.read_csv(data_path)

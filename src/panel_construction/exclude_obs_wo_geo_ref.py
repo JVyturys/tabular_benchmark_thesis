@@ -14,16 +14,16 @@ This script excludes observations from my final panel with no matching entry in 
 import pandas as pd
 import config as con
 from collections import Counter
-from utils.reporting import AnalysisLogger as Al
 
-data_path = con.FINAL_PANEL_PARQUET
+# define paths  
+data_path = con.PANEL
 results_path = con.RESULTS_DIR
 
+# load data
 df = pd.read_parquet(data_path)
-geo_ref = pd.read_csv(con.RAW_DATA_ROOT/"geo_ref_table_clean.csv")
+geo_ref = pd.read_csv(con.REF_GEOGRAPHY)
 
-
-# filtering only referenceable entities
+# filter only referenceable entities
 included_entities =  geo_ref['orgpermid'].to_list()
 indicies = []
 for entity in df['orgpermid']:
@@ -33,30 +33,8 @@ for entity in df['orgpermid']:
 
 frequency = Counter(indicies)
 df_clean = df[indicies]
-print(f'''\n\n##########\n\nDimensionality of cleaned data frame:{df_clean.shape}\n
-Unique entities in clean data: {df_clean['orgpermid'].nunique()}\n\n##########\n\n''')
-
 assert df_clean['orgpermid'].nunique() == geo_ref['orgpermid'].nunique(), \
     "Entity mismatch between panel and geography reference"
 print("Assertion passed — panel and geography table describe identical entity universe")
 
-print(df_clean.shape)
-
 df_clean.to_parquet("panel_clean", index=False)
-
-
-################################################
-# ------- logging results -----------
-################################################
-
-
-# logging = Al(con.RESULTS_DIR / "joined_panel", filename="cleaning_panel_geo_ref")
-# logging.section("Removing entities without geographic reference.")
-# logging.log("Number of entities WITH geographic reference:")
-# logging.log(len(geo_ref))
-
-# logging.log("\nNumber of unique entities in raw data panel:")
-# logging.log(df["orgpermid"].nunique())
-
-# logging.log("\nNumber of entities in panel after cleaning:")
-# logging.log(df_clean['orgpermid'].nunique())

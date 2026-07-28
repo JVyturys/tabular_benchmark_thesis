@@ -26,12 +26,12 @@ import numpy as np
 import config as con
 
 # Initializing paths and data base connection
-data_path = con.FINAL_PANEL_PARQUET
+data_path = con.PANEL
 
 # load data
 df = pd.read_parquet(data_path)
-parent = pd.read_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent_table.parquet")
-df_parent_enttype = pd.read_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent_ent_type.parquet")
+parent = pd.read_parquet(con.REF_PARENT)
+df_parent_enttype = pd.read_parquet(con.REF_PARENT_ENT_TYPE)
 
 # cast ids to int
 df['orgpermid'] = df['orgpermid'].astype('int64')
@@ -62,8 +62,8 @@ df_cluster_keys = df_cluster_keys.rename(columns={'ultimateparentorgpermid_x':'u
 df_cluster_keys['cluster_key'] = np.nan
 
 # create index list for conditional value assignment
-mask_ult = df_cluster_keys['parent_typecode'].isin(['COM', 'UNK', 'NGO', 'CLGUN'])
-mask_imm = df_cluster_keys['parent_typecode'].isin(['GVT', 'GVTDA', 'CINV'])
+mask_ult = df_cluster_keys['parent_typecode'].isin(con.ULTIMATE_KEY_TYPECODES)
+mask_imm = df_cluster_keys['parent_typecode'].isin(con.IMMEDIATE_KEY_TYPECODES)
 
 # assign cluster-keys
 df_cluster_keys.loc[mask_ult, 'cluster_key'] = df_cluster_keys.loc[mask_ult, 'ultimateparentorgpermid']

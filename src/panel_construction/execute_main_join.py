@@ -15,11 +15,11 @@ import log_config as ln
 import pandas as pd
 from utils.reporting import AnalysisLogger as Al
 
+# define path
 log_path = con.RESULTS_DIR / "exploration" /"raw_data"
 
-
+# initialize database connection
 db = wrds.Connection(wrds_username = ln.wrds_log)
-
 
 try:
     # 1. Master entity-year list
@@ -43,7 +43,7 @@ except:
     print(f"An error occured during the entity-year master SQL pull!")
 
 try:
-    ## Making sure there are no duplicates within the company-year-financials table
+    ## Make sure there are no duplicates within the company-year-financials table
     query_2 = """
     WITH skeleton AS (
         SELECT DISTINCT 
@@ -72,19 +72,19 @@ try:
 except:
     print(f"An error occured during the duplicate-check SQL pull!")
 
-# 2. Defining variable set
-## Loading the selected worldscope variable codes set 
+# 2. Define variable set
+## Load the selected worldscope variable codes set 
 ws_variables = pd.read_csv(con.RESULTS_DIR / "exploration" / "raw_data" / "ws_variables_final.csv") 
 ws_items = ws_variables.iloc[:,0].tolist()
 
-## transforming the codes back to wrds_ws_funda column names
+## transform the codes back to wrds_ws_funda column names
 ws_items_col = [f"item{i:.0f}" for i in ws_items]
 
-## defining SELECT clause for join operation in SQL
+## define SELECT clause for join operation in SQL
 feature_cols = ','.join(f"f.{item}" for item in ws_items_col)
 
 try:
-    # 3. Executing join for panel data
+    # 3. Execute join for panel data
     query_4 = f"""
     WITH skeleton AS (
         SELECT DISTINCT 

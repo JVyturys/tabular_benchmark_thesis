@@ -1,7 +1,6 @@
 ##################################################
 '''
 Document the company names, that are included in the final panel.
-
 '''
 ##################################################
 
@@ -14,9 +13,9 @@ from utils.reporting import AnalysisLogger as Al
 log_dir = con.RESULTS_DIR / "exploration" / "raw_data"
 db = wrds.Connection(wrds_username=lg.wrds_log)
 
-df = pd.read_parquet(con.FINAL_PANEL_PARQUET)
-geo_ref = pd.read_csv(con.RAW_DATA_ROOT / "geo_ref.csv")
-parent_ref = pd.read_parquet(con.RAW_DATA_ROOT / "parent_ref.parquet")
+df = pd.read_parquet(con.PANEL)
+geo_ref = pd.read_csv(con.REF_GEOGRAPHY)
+parent_ref = pd.read_parquet(con.REF_PARENT)
 
 orgpermids = df['orgpermid'].astype('int').unique().tolist()
 orgpermids_str = ','.join(f"{item}" for item in orgpermids)

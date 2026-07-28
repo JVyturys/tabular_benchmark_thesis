@@ -1,6 +1,6 @@
 ##################################################
 '''
-This script analyzes the way domcntryperm id is stored and 
+Check the way domcntryperm id is stored and 
 whether it has a time axis within the wrds database.
 '''
 ##################################################
@@ -13,13 +13,13 @@ from utils.reporting import AnalysisLogger as Al
 
 # Initializing paths and data base connection
 db = wrds.Connection(wrds_username = lc.wrds_log)
-data_path = con.FINAL_PANEL_PARQUET
+data_path = con.PANEL
 output_path = con.PROJECT_ROOT / 'data'
 results_path = con.RESULTS_DIR/ 'joined_panel'
 
 df = pd.read_parquet(data_path)
-geo_ref = pd.read_csv(con.RAW_DATA_ROOT / "geo_ref.csv")
-parent_ref = pd.read_parquet(con.RAW_DATA_ROOT / "parent_ref.parquet")
+geo_ref = pd.read_csv(con.REF_GEOGRAPHY)
+parent_ref = pd.read_parquet(con.REF_PARENT)
 
 # Find out whether the regional IDs are stored per entitiy or per entity-year
 ## Look at variables stored in 'permorgref' 
