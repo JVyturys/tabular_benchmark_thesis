@@ -1,5 +1,6 @@
 ##################################################
 '''
+build_cluster_keys.py
 Create the cluster assigment that is needed for the 
 stratified split. 
 
@@ -20,35 +21,22 @@ iv) every orgpermid in the panel has exactly one cluster_key
 '''
 ##################################################
 
-import wrds
 import pandas as pd
 import numpy as np
 import config as con
-import log_config as lc
 
 # Initializing paths and data base connection
-db = wrds.Connection(wrds_username = lc.wrds_log)
 data_path = con.FINAL_PANEL_PARQUET
-output_path = con.PROJECT_ROOT / 'data'
-results_path = con.RESULTS_DIR/ 'joined_panel'
 
 # load data
 df = pd.read_parquet(data_path)
-parent = pd.read_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent.parquet")
+parent = pd.read_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent_table.parquet")
 df_parent_enttype = pd.read_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent_ent_type.parquet")
 
 # cast ids to int
 df['orgpermid'] = df['orgpermid'].astype('int64')
 parent['ultimateparentorgpermid'] = parent['ultimateparentorgpermid'].astype('Int64')
 parent['immediateparentorgpermid'] = parent['immediateparentorgpermid'].astype('Int64')
-
-# cast ids to lists
-org_id = parent['orgpermid'].to_list()
-parent_id = parent['ultimateparentorgpermid'].dropna().to_list()
-
-# turn into string for SQL query
-org_string = ','.join(f"{id}" for id in org_id)
-ultparent_string = ','.join(f"{par_id}" for par_id in parent_id)
 
 # create table with set of entity IDs in panel
 df_cluster_keys = df[['orgpermid']].drop_duplicates()
@@ -68,14 +56,14 @@ df_cluster_keys = df_cluster_keys[['orgpermid_x', 'immediateparentorgpermid_x', 
 df_cluster_keys = df_cluster_keys.rename(columns={'ultimateparentorgpermid_x':'ultimateparentorgpermid',
                                                   'orgpermid_x':'orgpermid',
                                                   'immediateparentorgpermid_x':'immediateparentorgpermid',
-                                                  'typecode':'ultparent_ent_type'})
+                                                  'typecode':'parent_typecode'})
 
 # create placeholder column
 df_cluster_keys['cluster_key'] = np.nan
 
 # create index list for conditional value assignment
-mask_ult = df_cluster_keys['ultparent_ent_type'].isin(['COM', 'UNK', 'NGO', 'CLGUN'])
-mask_imm = df_cluster_keys['ultparent_ent_type'].isin(['GVT', 'GVTDA', 'CINV'])
+mask_ult = df_cluster_keys['parent_typecode'].isin(['COM', 'UNK', 'NGO', 'CLGUN'])
+mask_imm = df_cluster_keys['parent_typecode'].isin(['GVT', 'GVTDA', 'CINV'])
 
 # assign cluster-keys
 df_cluster_keys.loc[mask_ult, 'cluster_key'] = df_cluster_keys.loc[mask_ult, 'ultimateparentorgpermid']
@@ -98,9 +86,10 @@ assert n_nan == 0, "Error: Unresolved NaNs in the cluster key"
 # check: are any keys assiged that are an ultimateparerent for one and an immediate parent for another?
 keys_assigned_from_ult = df_cluster_keys.loc[mask_ult, 'cluster_key']
 keys_assigned_from_imm = df_cluster_keys.loc[mask_imm, 'cluster_key']
+keys_assigned_from_sngltn = df_cluster_keys.loc[singleton_cluster_mask, 'cluster_key']
 
 ## build intersection of keys assigned as ultimate and immediate parent
-overlapping_keys = set(keys_assigned_from_ult).intersection(set(keys_assigned_from_imm))
+overlapping_keys = set(keys_assigned_from_ult).intersection(set(keys_assigned_from_imm)).intersection(set(keys_assigned_from_sngltn))
 
 ## filter dataframe for intersection 
 df_overlaps = df_cluster_keys[df_cluster_keys['cluster_key'].isin(overlapping_keys)]
@@ -113,12 +102,12 @@ assert len(df_overlaps) == 0,  '''Unresolved key intersection:
 print(df_cluster_keys.columns)
 
 df_cluster_keys = df_cluster_keys[['orgpermid', 'cluster_key',
-                                   'ultparent_ent_type']]
+                                   'parent_typecode']]
 
 df_cluster_keys['key_source'] = np.nan
-df_cluster_keys.loc[df_cluster_keys['ultperent_ent_type'].isna(), 'key_source'] = 0
-df_cluster_keys.loc[df_cluster_keys['ultperent_ent_type'].isin(['COM', 'UNK', 'NGO', 'CLGUN']), 'key_source'] = 1
-df_cluster_keys.loc[df_cluster_keys['ultperent_ent_type'].isin(['GVT', 'GVTDA', 'CINV']), 'key_source'] = 2
+df_cluster_keys.loc[df_cluster_keys['parent_typecode'].isin(['COM', 'UNK', 'NGO', 'CLGUN']), 'key_source'] = 1
+df_cluster_keys.loc[df_cluster_keys['parent_typecode'].isin(['GVT', 'GVTDA', 'CINV']), 'key_source'] = 2
+df_cluster_keys.loc[df_cluster_keys['parent_typecode'].isna(), 'key_source'] = 0
 
 assert df_cluster_keys['key_source'].isnull().sum() == 0, '''Unresolved NaN in "key-source" column''' 
 
