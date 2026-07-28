@@ -1,6 +1,6 @@
 #######################################################################
 ''' 
-III. 
+build_geoID_reference_table.py
 
 This script creates the geography reference table for the lvl3permid 
 geo codes. This tables allows me to check in which region and country 
@@ -42,7 +42,7 @@ try:
     """
 
     # Saving as csv
-    db.raw_sql(query).to_parquet("geo_reference_table.parquet", index=False)
+    db.raw_sql(query).to_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_geo_table.parquet", index=False)
 
     # Saving SQL pull as df for inspection
     ref_geography = db.raw_sql(query)
