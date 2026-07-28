@@ -1,9 +1,9 @@
 ##################################################
 '''
 VI.
-
-Parent - subsidiary relations might cause data leakage in the split. To prevent this I am pulling 
-a parent table to consider those relations later on during the data split.
+Create two reference files:
+- an org-id to parent-id refrence table
+- and parent-id to parent entitiy type table  
 
 '''
 ##################################################
@@ -22,12 +22,21 @@ output_path = con.PROJECT_ROOT / "data" / "raw"
 results_path = con.RESULTS_DIR/ "exploration" / "joined_panel"
 
 # loading data
-panel = pd.read_parquet(data_path)
-print(panel['orgpermid'].nunique()) # -> 9656 unique entities
+df = pd.read_parquet(data_path)
+parent = pd.read_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent.parquet")
 
-# entity ID list for pulling entity parent table
-ids = panel["orgpermid"].dropna().astype(int).unique()
-id_list = ','.join(str(id) for id in ids)
+# cast ids to int
+df['orgpermid'] = df['orgpermid'].astype('int64')
+parent['ultimateparentorgpermid'] = parent['ultimateparentorgpermid'].astype('Int64')
+parent['immediateparentorgpermid'] = parent['immediateparentorgpermid'].astype('Int64')
+
+# cast ids to lists
+org_id = parent['orgpermid'].to_list()
+parent_id = parent['ultimateparentorgpermid'].dropna().to_list()
+
+# turn into string for SQL query
+org_string = ','.join(f"{id}" for id in org_id)
+ultparent_string = ','.join(f"{par_id}" for par_id in parent_id)
 
 
 # SQL
@@ -43,14 +52,32 @@ query_1 = f"""
 try:
     # pull from database
     ref_parents = db.raw_sql(query_1)
-    print(ref_parents.shape)
-    print(ref_parents.isnull().sum())
     
     ref_parents.to_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent_table.parquet", index=False) # saving results
-
     print(f"Parent reference table successfully saved.")
+
 except Exception as error:
-    print(f"An error occured during execution of query 1.\n Error message:{error}")
+    print(f"An error occured during execution of query_1.\n Error: {error}")
+
+
+# generate parent entity type reference table
+query_2 = f"""
+     SELECT DISTINCT orgpermid,
+                     comname,
+                     typecode,
+                     ultimateparentorgpermid,
+                     immediateparentorgpermid,
+                     domcntrypermid
+     FROM tr_common.permorgref
+     WHERE orgpermid IN ({ultparent_string})
+""" 
+
+try:
+        
+    df_parent_enttype = db.raw_sql(query_2)
+    df_parent_enttype.to_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent_ent_type.parquet", index=False)
+except Exception as error:
+    print(f"An error occured during execution of query_2.\n Error: {error}")
 
 
 

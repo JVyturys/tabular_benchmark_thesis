@@ -34,12 +34,11 @@ results_path = con.RESULTS_DIR/ 'joined_panel'
 
 # load data
 df = pd.read_parquet(data_path)
-geo = pd.read_csv(con.PROJECT_ROOT / "data" / "raw" / "geo_ref.csv")
 parent = pd.read_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent.parquet")
+df_parent_enttype = pd.read_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_parent_ent_type.parquet")
 
 # cast ids to int
 df['orgpermid'] = df['orgpermid'].astype('int64')
-geo['lvl3permid'] = geo['lvl3permid'].astype('int64')
 parent['ultimateparentorgpermid'] = parent['ultimateparentorgpermid'].astype('Int64')
 parent['immediateparentorgpermid'] = parent['immediateparentorgpermid'].astype('Int64')
 
@@ -50,17 +49,6 @@ parent_id = parent['ultimateparentorgpermid'].dropna().to_list()
 # turn into string for SQL query
 org_string = ','.join(f"{id}" for id in org_id)
 ultparent_string = ','.join(f"{par_id}" for par_id in parent_id)
-
-# select entity meta-information of all parents in the panel 
-query = f"""
-     SELECT DISTINCT orgpermid,comname,typecode,ultimateparentorgpermid,immediateparentorgpermid,
-                     domcntrypermid
-     FROM tr_common.permorgref
-     WHERE orgpermid IN ({ultparent_string})
-""" 
-
-df_parent_enttype = db.raw_sql(query)
-df_parent_enttype.to_parquet(con.PROJECT_ROOT / "data" / "raw" / "parent_ent_type.parquet", index=False)
 
 # create table with set of entity IDs in panel
 df_cluster_keys = df[['orgpermid']].drop_duplicates()
@@ -92,6 +80,7 @@ mask_imm = df_cluster_keys['ultparent_ent_type'].isin(['GVT', 'GVTDA', 'CINV'])
 # assign cluster-keys
 df_cluster_keys.loc[mask_ult, 'cluster_key'] = df_cluster_keys.loc[mask_ult, 'ultimateparentorgpermid']
 df_cluster_keys.loc[mask_imm, 'cluster_key'] = df_cluster_keys.loc[mask_imm, 'immediateparentorgpermid']
+df_cluster_keys['cluster_key'] = df_cluster_keys['cluster_key'].astype('Int64')
 
 # data quality check
 singleton_cluster_mask = df_cluster_keys['cluster_key'].isnull()
@@ -99,9 +88,8 @@ n_nan = singleton_cluster_mask.sum()
 assert n_nan == 3, "Error: check data input, 3 entities should not have an ultimateparentorgpermid"
 
 # assign singleton cluster IDs to entities without parents
-start_ID = 9999999999
-singleton_clusters = np.arange(start_ID, start_ID - n_nan, -1)
-df_cluster_keys.loc[singleton_cluster_mask, 'cluster_key'] = singleton_clusters
+singleton_ids = df_cluster_keys.loc[singleton_cluster_mask, 'orgpermid'].tolist()
+df_cluster_keys.loc[singleton_cluster_mask, 'cluster_key'] = singleton_ids
 
 # check if all NaN cluster keys have been resolved
 n_nan = df_cluster_keys['cluster_key'].isnull().sum()
@@ -128,14 +116,14 @@ df_cluster_keys = df_cluster_keys[['orgpermid', 'cluster_key',
                                    'ultparent_ent_type']]
 
 df_cluster_keys['key_source'] = np.nan
-df_cluster_keys.loc[singleton_cluster_mask, 'key_source'] = 0
-df_cluster_keys.loc[mask_ult, 'key_source'] = 1
-df_cluster_keys.loc[mask_imm, 'key_source'] = 2
+df_cluster_keys.loc[df_cluster_keys['ultperent_ent_type'].isna(), 'key_source'] = 0
+df_cluster_keys.loc[df_cluster_keys['ultperent_ent_type'].isin(['COM', 'UNK', 'NGO', 'CLGUN']), 'key_source'] = 1
+df_cluster_keys.loc[df_cluster_keys['ultperent_ent_type'].isin(['GVT', 'GVTDA', 'CINV']), 'key_source'] = 2
 
 assert df_cluster_keys['key_source'].isnull().sum() == 0, '''Unresolved NaN in "key-source" column''' 
 
 assert df_cluster_keys.groupby('orgpermid')['cluster_key'].nunique().max() == 1, '''Mismatch between orgpermid and cluster key allocation.'''
-print(df_cluster_keys.groupby(['orgpermid', 'cluster_key']).size().sum())
+print(df_cluster_keys.groupby(['orgpermid', 'cluster_key']).size())
 
 
 # ouput cluster reference file
