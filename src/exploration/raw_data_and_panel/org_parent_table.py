@@ -46,7 +46,7 @@ query_1 = f"""
         immediateparentorgpermid,
         ultimateparentorgpermid
     FROM tr_common.permorgref
-    WHERE orgpermid IN ({id_list})
+    WHERE orgpermid IN ({org_string})
     """
 
 try:
