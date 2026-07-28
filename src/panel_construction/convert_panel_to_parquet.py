@@ -1,5 +1,7 @@
 ######################################################################
 '''
+EXCLUDE BEFORE SUBMISSION
+
 IV.
 
 This file transforms the panel                               

@@ -35,8 +35,7 @@ obs_per_ent = df_geo_merge.value_counts()
 df_obs_cntry = df_geo_merge['lvl5isocntry'] # isolating countries
 obs_per_cntry = df_obs_cntry.value_counts()
 
-
-
-obs_per_ent.to_csv("obs_per_ent.csv", index=True)
-obs_per_cntry.to_csv("obs_per_cntry.csv", index=True)
+# document output 
+obs_per_ent.to_parquet("obs_per_ent.parquet", index=True)
+obs_per_cntry.to_parquet("obs_per_cntry.parquet", index=True)
 
