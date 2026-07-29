@@ -1,10 +1,16 @@
 import os
 from pathlib import Path
 
-# DATA PATHS 
+# PATHS 
 PROJECT_ROOT = Path(__file__).resolve().parent
+
+## DATA
 DATA_ROOT = PROJECT_ROOT / "data"
-RAW_PANEL = DATA_ROOT / "raw" / "raw_panel.parquet"
+DATA_RAW = DATA_ROOT / "raw"
+
+RAW_PANEL = DATA_RAW / "raw_panel.parquet"
+REF_WSVAR = DATA_RAW / "ref_ws_variables.parquet"
+
 
 # FINAL PANEL
 FINAL_DIR = PROJECT_ROOT / "data" / "final"

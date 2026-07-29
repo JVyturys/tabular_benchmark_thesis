@@ -1,78 +1,25 @@
 #######################################################################
 ''' 
+src.exploration.raw_data.diagnose_main_join_entity_attrition
 
-Execute main join using SQL queries via the wrds libraries.
+input: raw SQL
+purpose: check entity coverage after jpining the esg and financials datasets.
+output: coverage after join: 9.721 entities
+        coverage before join: 13.841
 
-Output: "raw_panel.parquet"                      
+        Highest attrition: in region 100219:
+        4575 -> 609, delta: 3966 -> 86,6885%                 
 '''
 #######################################################################
 
 import wrds
-import config as con
 import log_config as ln
 import pandas as pd
-from utils.reporting import AnalysisLogger as Al
 
 # initialize database connection
 db = wrds.Connection(wrds_username = ln.wrds_log)
 
-try:
-    # 1. Master entity-year list
-    query_1 = f"""
-        SELECT DISTINCT p.orgpermid,
-                        p.worldscopecmpid,
-                        e.year
-        FROM tr_common.permorgref p 
-        JOIN tr_esg.wrds_ref_esg e
-            ON p.orgpermid = e.orgpermid
-        WHERE p.typecode = 'COM'
-            AND p.worldscopecmpid IS NOT NULL
-            AND e.fieldname = 'ESGCombinedScore'
-            AND e.valuescore IS NOT NULL
-            AND e.value IS NOT NULL
-            AND e.year BETWEEN 2009 AND 2025
-        ORDER BY orgpermid
-    """
-    output = db.raw_sql(query_1)
-except:
-    print(f"An error occured during the entity-year master SQL pull!")
-
-try:
-    ## Make sure there are no duplicates within the company-year-financials table
-    query_2 = """
-    WITH skeleton AS (
-        SELECT DISTINCT 
-            p.orgpermid, 
-            p.worldscopecmpid, 
-            e.year
-        FROM tr_common.permorgref p
-        JOIN tr_esg.wrds_ref_esg e ON p.orgpermid = e.orgpermid
-        WHERE p.typecode = 'COM'
-        AND p.worldscopecmpid IS NOT NULL
-        AND e.fieldname = 'ESGCombinedScore'
-        AND e.valuescore IS NOT NULL
-        AND e.year BETWEEN 2009 AND 2025
-    )
-    SELECT s.orgpermid, s.year, COUNT(DISTINCT f.code) as n_codes
-    FROM skeleton s
-    JOIN tr_worldscope.wrds_ws_funda f
-        ON s.worldscopecmpid = f.item6105
-        AND s.year = f.year_
-    WHERE f.freq = 'A'
-    GROUP BY s.orgpermid, s.year
-    HAVING COUNT(DISTINCT f.code) > 1
-    """
-    slice_ws = db.raw_sql(query_2)
-    print(f"Data frame with duplicate entires:\n {slice_ws}")
-except:
-    print(f"An error occured during the duplicate-check SQL pull!")
-
-
-
-##################################################################
-
-# 4. Compare entity coverage before and after the join:
-# Number of entities after join:
+# pull number of entities after join:
 try:
         query_5 = f"""
         WITH skeleton AS (
@@ -101,7 +48,7 @@ try:
         FROM panel
         """
 
-        # ## Number of entities before join.
+        # pull number of entities before join
         query_6 = f"""
         WITH skeleton AS (
             SELECT DISTINCT 
@@ -131,11 +78,14 @@ try:
 
         output_after_join = db.raw_sql(query_5) 
         output_before_join = db.raw_sql(query_6)
+
+        print(f'''Output after join: {output_after_join}''')
+        print(f'''Output before join: {output_before_join}''')
+
 except: 
      print(f"An error occured during attrition (query 5&6) SQL pull!")
 
-try:    
-    # 5. Check distributional characteristics of dropped values:
+try:
     query_7 = f"""
         WITH skeleton AS ( 
             SELECT DISTINCT
@@ -208,12 +158,11 @@ output_after = db.raw_sql(query_8)
 
 attrition_df = pd.merge(output_before, output_after, on=output_before.columns[0])
 attrition_df["attrition"] = attrition_df.iloc[:,1] - attrition_df.iloc[:,2]
-# attrition_df["attrition_rel"] = attrition_df[attrition_df].copy()
 
 rel_attrition = [attrition_df.iloc[i,3]/attrition_df.iloc[i,1] for i in range(len(attrition_df))]
 attrition_df["rel_attrition"]= rel_attrition
 
-attrition_df.to_csv("attrition_after_join_geo_codes.csv")
+print(attrition_df)
 
 try:
     query_9= f"""

@@ -1,6 +1,6 @@
 #######################################################################
 ''' 
-src.production.pull_raw_data.execute_main_join
+src.production.pull_raw_data.build_raw_panel
 
 input: ws_variables_final.csv, SQL
 purpose: execute main join via SQL queries across WRDS libraries.
@@ -12,17 +12,12 @@ import wrds
 import config as con
 import log_config as ln
 import pandas as pd
-from utils.reporting import AnalysisLogger as Al
 
 # initialize database connection
 db = wrds.Connection(wrds_username = ln.wrds_log)
 
-
-print(f'''DEBUG: LOADING DATA''')
-
-
 # load variable set
-ws_variables = pd.read_csv(con.RESULTS_DIR / "exploration" / "wrds_database" / "ws_variables_final.csv") 
+ws_variables = pd.read_parquet(con.REF_WSVAR) 
 ws_items = ws_variables.iloc[:,0].tolist()
 
 # transform the item codes back to wrds_ws_funda column names
@@ -31,7 +26,6 @@ ws_items_col = [f"item{i:.0f}" for i in ws_items]
 # define SQL SELECT string for join operation
 feature_cols = ','.join(f"f.{item}" for item in ws_items_col)
 
-print(f'''DEBUG: ENTERING SQL PULL''')
 try:
     # execute join for panel data
     query = f"""
@@ -63,4 +57,3 @@ try:
     print(f'''Dataset "raw_panel.parquet" successfully saved.''')
 except:
     print(f"An error occured during the main data merge SQL pull!")
-

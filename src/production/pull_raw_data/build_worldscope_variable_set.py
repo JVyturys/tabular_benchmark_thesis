@@ -1,3 +1,15 @@
+##################################################
+'''
+src.exploration.WRDS_database.build_worldscope_variable_set
+
+input: raw SQL
+purpose: build set of variables to be included in raw panel
+output: ws_variables_final.parquet
+
+'''
+##################################################
+
+
 import wrds
 import config as con
 import log_config as lg
@@ -39,6 +51,6 @@ query_4 = f"""
         AND name NOT LIKE '%%EXCHANGE RATE USED FOR TRANS%%'
     ORDER BY industry
 """
-output = db.raw_sql(query_4).to_parquet('ws_variables_final.parquet', index=False)
+output = db.raw_sql(query_4).to_parquet(con.REF_WSVAR, index=False)
 
 
