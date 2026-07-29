@@ -1,1 +1,1 @@
-# produce artifacts that root in the panel_raw dataset
+# produce artifacts that root in the raw_panel.parquet dataset

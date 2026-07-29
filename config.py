@@ -4,17 +4,17 @@ from pathlib import Path
 # DATA PATHS 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DATA_ROOT = PROJECT_ROOT / "data"
+RAW_PANEL = DATA_ROOT / "raw" / "raw_panel.parquet"
 
-RAW_PANEL = DATA_ROOT / "raw" / "panel_raw.parquet"
-
-
+# FINAL PANEL
 FINAL_DIR = PROJECT_ROOT / "data" / "final"
 PANEL = FINAL_DIR / "panel.parquet"
+
+## FINAL PANEL ARTIFACTS
 REF_CLUSTER_KEYS = FINAL_DIR / "ref_cluster_keys.parquet"
 REF_GEOGRAPHY = FINAL_DIR / "ref_geo_table.parquet"
 REF_PARENT =  FINAL_DIR / "ref_parent_table.parquet"
 REF_PARENT_ENT_TYPE = FINAL_DIR / "ref_parent_ent_type.parquet"
-
 
 # RESULTS
 RESULTS_DIR = PROJECT_ROOT / "results"

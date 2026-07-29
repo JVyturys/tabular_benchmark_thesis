@@ -14,7 +14,7 @@ import log_config as lg
 db = wrds.Connection(wrds_username=lg.wrds_log)
 
 #define paths
-data_path = con.PANEL
+data_path = con.RAW_PANEL
 results_path = con.RESULTS_DIR / "joined_panel" / "geo_id_merge_attrition"
 
 # read data
@@ -139,7 +139,7 @@ try:
             inccntrypermid
         FROM tr_common.permorgref
         WHERE orgpermid IN (
-                        SELECT orgpermid
+                        SELECgeo_referenceT orgpermid
                         FROM tr_common.permorgref
                         WHERE domcntrypermid = 110515)
     """
