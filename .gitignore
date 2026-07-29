@@ -24,6 +24,7 @@ weights/
 *.pt
 *.safetensors
 *.csv
+*.parquet
 
 # results
 results/

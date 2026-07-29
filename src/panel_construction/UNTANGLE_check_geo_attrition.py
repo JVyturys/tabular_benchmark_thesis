@@ -125,6 +125,8 @@ try:
 except Exception as error:
     print(f"An error occured during the query_5 SQL pull:\n{error}")
 
+
+#############################################################################
 try:
     # Select all chineese companies
     query_6 = f"""
@@ -144,6 +146,8 @@ try:
     
 except Exception as error:
     print(f"An error occured during the query_6 SQL pull:\n{error}")
+
+########################################################################
 
 # investigate last unknown entity
 try:
@@ -182,7 +186,7 @@ try:
 
 except Exception as error:
     print(f"An error occured during the query_8 SQL pull:\n{error}")
-
+#######################################################################
 try:
     # append sudaneese entitiy
     query_9 = f"""
