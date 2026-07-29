@@ -5,7 +5,7 @@ I.
 This script executes the join of the distinct wrds tables,based on  
 the results of the data exploration.
 
-Output: main merged data set "panel_final.csv"                      
+Output: main merged data set "raw_panel.parquet"                      
 '''
 #######################################################################
 
@@ -108,6 +108,7 @@ try:
     WHERE f.freq = 'A'
     """
     panel = db.raw_sql(query_4)
+    panel.to_parquet(con.DATA_ROOT, "raw_panel.parquet")
 except:
     print(f"An error occured during the main data merge SQL pull!")
 
