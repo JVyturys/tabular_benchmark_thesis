@@ -1,6 +1,6 @@
 ##################################################
 '''
-Investigate the attrition of 1438 entities after joining the geography
+Investigate the attrition source for 1438 entities after joining the geography
 inforamtion.
 '''
 ##################################################
@@ -127,3 +127,41 @@ try:
     
 except Exception as error:
     print(f"An error occured during the query_5 SQL pull:\n{error}")
+
+
+# investigate origin of remaining entity
+try:
+    query_7 =  f"""
+        SELECT 
+            orgpermid,
+            comname,
+            domcntrypermid,
+            inccntrypermid
+        FROM tr_common.permorgref
+        WHERE orgpermid IN (
+                        SELECT orgpermid
+                        FROM tr_common.permorgref
+                        WHERE domcntrypermid = 110515)
+    """
+    print(db.raw_sql(query_7))
+    # the last missing entitiy appears to be sudaneese
+
+except Exception as error:
+    print(f"An error occured during the query_7 SQL pull:\n{error}")
+
+try:
+    query_8 = f"""
+        SELECT 
+            lvl5permid,
+            lvl5isocntry,
+            lvl3permid,
+            lvl2permid
+        FROM tr_common.tmcregncntrymap
+        WHERE 
+            lvl5isocntry = 'SD'
+    """
+    # execute SQL query
+    print(db.raw_sql(query_8))
+
+except Exception as error:
+    print(f"An error occured during the query_8 SQL pull:\n{error}")
