@@ -30,4 +30,4 @@ try:
 except Exception as error:
     print(f'An error occured during query pull. Error:{error}')
 
-df_com_names.to_csv('panel_com_names.csv', index=False)
+df_com_names.to_parquet('panel_com_names.parquet', index=False)

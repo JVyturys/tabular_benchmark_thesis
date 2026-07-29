@@ -4,6 +4,7 @@ from pathlib import Path
 # DATA PATHS 
 PROJECT_ROOT = Path(__file__).resolve().parent
 FINAL_DIR = PROJECT_ROOT / "data" / "final"
+RAW_PANEL = PROJECT_ROOT / "data" / "raw" / "panel_raw.parquet"
 PANEL = FINAL_DIR / "panel.parquet"
 REF_CLUSTER_KEYS = FINAL_DIR / "ref_cluster_keys.parquet"
 REF_GEOGRAPHY = FINAL_DIR / "ref_geo_table.parquet"

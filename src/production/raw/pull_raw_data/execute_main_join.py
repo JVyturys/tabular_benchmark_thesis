@@ -74,7 +74,7 @@ except:
 
 # 2. Define variable set
 ## Load the selected worldscope variable codes set 
-ws_variables = pd.read_csv(con.RESULTS_DIR / "exploration" / "raw_data" / "ws_variables_final.csv") 
+ws_variables = pd.read_csv(con.RESULTS_DIR / "exploration" / "wrds_database" / "ws_variables_final.csv") 
 ws_items = ws_variables.iloc[:,0].tolist()
 
 ## transform the codes back to wrds_ws_funda column names

@@ -1,3 +1,6 @@
 ##################################################
-'''write ref_geography.parquet'''
+'''
+PRE FINAL PANEL
+
+output: ref_geo_pre_attr.parquet'''
 ##################################################
