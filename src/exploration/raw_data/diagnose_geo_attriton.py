@@ -16,6 +16,7 @@ output: out of 9721 entities 9715 have a valid regional ID,
         lvl3permid for sudaneese companies: 100218,
         
         ammend config with harcoded overrides for 110515 and 105758
+        not geographically referenceable entities: 6
 '''
 ##################################################
 

@@ -7,7 +7,7 @@ geo codes. This tables allows me to check in which region and country
 an entity is based. Will be userd for geographic performance deivergence 
 analysis.
 
-# Output: geo_reference_table.parquet
+# Output: ref_geo_table.parquet
 '''
 #######################################################################
 
@@ -17,7 +17,7 @@ import log_config as lc
 import pandas as pd
 
 # initialize database connection
-db = wrds.Connection(wrds_username=lc.wrds_log)
+db = wrds.Connection(wrds_username = lc.wrds_log)
 
 # define paths
 data_path = con.PANEL
@@ -26,8 +26,8 @@ results_path = con.RESULTS_DIR/ "exploration" / "joined_panel"
 
 # define entitiy index for SQL query based on final panel
 panel = pd.read_parquet(data_path)
-ids = panel["orgpermid"].dropna().astype(int).unique()
-id_list = ','.join(str(id) for id in ids)
+org_ids = panel["orgpermid"].dropna().astype('Int64').unique()
+orgid_string = ','.join(str(id) for id in org_ids)
 
 try:
     query = f"""
@@ -42,7 +42,7 @@ try:
     """
 
     # save output
-    db.raw_sql(query).to_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_geo_table.parquet", index=False)
+    db.raw_sql(query).to_parquet(con.REF_GEOGRAPHY, index=False)
 
 except:
     print(f"An error occured during the SQL-pull...")
