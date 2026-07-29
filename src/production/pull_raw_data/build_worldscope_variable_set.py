@@ -1,14 +1,12 @@
 ##################################################
 '''
-src.exploration.WRDS_database.build_worldscope_variable_set
+src.production.pull_raw_data.build_worldscope_variable_set
 
 input: raw SQL
 purpose: build set of variables to be included in raw panel
-output: ws_variables_final.parquet
-
+output: ref_ws_variables.parquet
 '''
 ##################################################
-
 
 import wrds
 import config as con
@@ -28,9 +26,12 @@ query_1 = """
     FROM tr_worldscope.wrds_ws_funda
     LIMIT 2
 """
+
 df_ws = db.raw_sql(query_1)
-cols = df_ws.columns
-fin_cols = cols[4:]
+
+# exclude columns with non-financial meta information 
+exclude_columns = ["code", "year_", "freq", "seq"]
+fin_cols = [col for col in df_ws.columns if col not in exclude_columns]
 
 ## Remove "item[...]" string from item-coding
 item_numbers = [int(code.replace('item', '')) for code in fin_cols if code.startswith('item')]
@@ -51,6 +52,6 @@ query_4 = f"""
         AND name NOT LIKE '%%EXCHANGE RATE USED FOR TRANS%%'
     ORDER BY industry
 """
-output = db.raw_sql(query_4).to_parquet(con.REF_WSVAR, index=False)
+db.raw_sql(query_4).to_parquet(con.REF_WSVAR, index=False)
 
 

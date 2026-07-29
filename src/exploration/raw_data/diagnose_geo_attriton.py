@@ -1,7 +1,21 @@
 ##################################################
 '''
-Investigate the attrition source for 1438 entities after joining the geography
-inforamtion.
+src.exploration.raw_data.diagnose_geo_attriton
+
+input: raw_panel.parquet, ref_geo_raw.parquet, raw SQL
+purpose: determine_geo_attrition.py reveals an attrition of 1438 entities,
+        investigate country of origin and reason for attririon for those entities
+output: out of 9721 entities 9715 have a valid regional ID,
+        of those 1432 entities have no match within the tr_regcntrymap which
+        is required for the lvl3permid mapping,
+        1431 entities are listed within 105758 domcntrypermid (which is not a valid lvl3permid),
+        a sample reveals that 105758 associates to chineese entities,
+        lvl3permid for chineese companies: 100089
+        1 entity is listed within 110515 domcntrypermid (which is not a valid lvl3permid),
+        a sample reveals that 110515 associates to sudaneese entities,
+        lvl3permid for sudaneese companies: 100218,
+        
+        ammend config with harcoded overrides for 110515 and 105758
 '''
 ##################################################
 
@@ -13,19 +27,18 @@ import log_config as lg
 # initialize database connection
 db = wrds.Connection(wrds_username=lg.wrds_log)
 
-#define paths
-data_path = con.RAW_PANEL
-results_path = con.RESULTS_DIR / "joined_panel" / "geo_id_merge_attrition"
-
 # read data
-panel = pd.read_parquet(data_path)
+raw_panel = pd.read_parquet(con.RAW_PANEL)
+ref_geo_raw = pd.read_parquet(con.REF_GEO_RAW)
 
+
+##############################################
 # define ID string for the SQL query 
-org_id = panel["orgpermid"].dropna().astype(int).unique()
-org_id_string = ','.join(str(org_id) for id in org_id)
+org_id = raw_panel["orgpermid"].dropna().astype('Int64').unique()
+orgid_string = ','.join(str(id) for id in org_id)
 
 try:
-    # check number of entities with geo ID
+    # determine number of entities with valid geography ID
     query_1 = f"""
         SELECT
             COUNT(*) AS total,
@@ -36,24 +49,24 @@ try:
                 )
             ) AS matched_in_taxonomy
         FROM tr_common.permorgref
-        WHERE orgpermid IN ({org_id_string}) 
+        WHERE orgpermid IN ({orgid_string}) 
     """
 
     # execute SQL query
-    print(f'''\nNumber of entities with geo ID:\n''')
+    print(f'''\nNumber of entities with valid geography ID:''')
     print(db.raw_sql(query_1))
 
 except Exception as error: 
     print(f"An error occured during the query_1 SQL pull:\n{error}")
 
 try:
-    # check number of entities that have an ID but are not referenced in tr database
+    # investigate number of entities that have an ID but are not referenced in tr database
     query_2 = f"""
         SELECT
             p.domcntrypermid,
             COUNT(*) as n_entities
         FROM tr_common.permorgref p
-        WHERE p.orgpermid IN ({org_id_string}) 
+        WHERE p.orgpermid IN ({orgid_string}) 
             AND p.domcntrypermid IS NOT NULL
             AND p.domcntrypermid NOT IN (
                 SELECT lvl5permid FROM tr_common.tmcregncntrymap
@@ -63,7 +76,7 @@ try:
     """
 
     # execute SQL query
-    print(f'''\nNumber of entities with geo ID but not referenced in tmcregncntrymap:\n''')
+    print(f'''\nNumber of entities with geo ID but not referenced in tmcregncntrymap:''')
     print(db.raw_sql(query_2))
 
 except Exception as error:
@@ -82,7 +95,7 @@ try:
             OR lvl5permid = 105758
     """
     # execute SQL query
-    print(f'''\nCheck what type of ID 105758 is: :\n''')
+    print(f'''\nInvestigate ID 105758:''')
     print(db.raw_sql(query_3))
     
 except Exception as error:
@@ -99,13 +112,15 @@ try:
             p.domcntrypermid,
             p.inccntrypermid
         FROM tr_common.permorgref p
-        WHERE p.orgpermid IN ({org_id_string})
+        WHERE p.orgpermid IN ({orgid_string})
             AND p.domcntrypermid = 105758
         LIMIT 30
 """
     # execute SQL query
     print(f'''\nSample of companies with lvl3permid == 105758\n''')
-    print(db.raw_sql(query_4))
+    entities_105758 = db.raw_sql(query_4) 
+    print(entities_105758.columns)
+    print(entities_105758['comname'])
 
 except Exception as error:
     print(f"An error occured during the query_4 SQL pull:\n{error}")
@@ -122,14 +137,14 @@ try:
             lvl5isocntry = 'CN'      
 """
     # execute SQL query
-    print(f'''\nDouble check lvl3permid for Chineese companies\n''')
+    print(f'''\nInvestigate lvl3permid for chineese companies''')
     print(db.raw_sql(query_5))
     
 except Exception as error:
     print(f"An error occured during the query_5 SQL pull:\n{error}")
 
 
-# investigate origin of remaining entity
+# investigate origin of entity with domcntrypermid = 110515
 try:
     query_7 =  f"""
         SELECT 
@@ -139,12 +154,11 @@ try:
             inccntrypermid
         FROM tr_common.permorgref
         WHERE orgpermid IN (
-                        SELECgeo_referenceT orgpermid
+                        SELECT orgpermid
                         FROM tr_common.permorgref
                         WHERE domcntrypermid = 110515)
     """
     print(db.raw_sql(query_7))
-    # the last missing entitiy appears to be sudaneese
 
 except Exception as error:
     print(f"An error occured during the query_7 SQL pull:\n{error}")
@@ -161,7 +175,9 @@ try:
             lvl5isocntry = 'SD'
     """
     # execute SQL query
+    print(f'''tmcregncntrymap codes for sudaneese entities:''')    
     print(db.raw_sql(query_8))
+
 
 except Exception as error:
     print(f"An error occured during the query_8 SQL pull:\n{error}")

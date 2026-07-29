@@ -3,9 +3,9 @@
 src.exploration.WRDS_database.check_domcntryID_consistency
 
 input: raw SQL
-purpose: Check the way domcntryperm id is stored and 
+purpose: check the way domcntryperm id is stored and 
         whether it has a time axis within the wrds database.
-output: Domcntry ID is assigned once per orgpermid. 
+output: domcntry ID is assigned once per orgpermid. 
         Historical id changes of the domcntryid are not stored.
 '''
 ##################################################
