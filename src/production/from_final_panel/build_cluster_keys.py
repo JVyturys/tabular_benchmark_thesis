@@ -100,8 +100,6 @@ assert len(df_overlaps) == 0,  '''Unresolved key intersection:
  a cluster key is an immediateparent ID and at the same time an 
  ultimateparent ID'''
 
-print(df_cluster_keys.columns)
-
 df_cluster_keys = df_cluster_keys[['orgpermid', 'cluster_key',
                                    'parent_typecode']]
 
@@ -113,9 +111,9 @@ df_cluster_keys.loc[df_cluster_keys['parent_typecode'].isna(), 'key_source'] = 0
 assert df_cluster_keys['key_source'].isnull().sum() == 0, '''Unresolved NaN in "key-source" column''' 
 
 assert df_cluster_keys.groupby('orgpermid')['cluster_key'].nunique().max() == 1, '''Mismatch between orgpermid and cluster key allocation.'''
-print(df_cluster_keys.groupby(['orgpermid', 'cluster_key']).size())
+
 
 # ouput cluster reference file
-df_cluster_keys.to_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_cluster_keys.parquet", index=False)
-
+df_cluster_keys.to_parquet(con.REF_CLUSTER_KEYS, index=False)
+print(f'''ref_cluster_keys.parquet succesfully saved. \n shape={df_cluster_keys.shape}''')
 
