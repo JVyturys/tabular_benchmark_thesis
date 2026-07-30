@@ -38,7 +38,7 @@ try:
         FROM tr_common.permorgref p
         JOIN tr_common.tmcregncntrymap g
             ON p.domcntrypermid = g.lvl5permid
-        WHERE p.orgpermid IN ({id_list})
+        WHERE p.orgpermid IN ({orgid_string})
     """
 
     # save output

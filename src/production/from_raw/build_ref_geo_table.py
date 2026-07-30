@@ -1,18 +1,21 @@
-##################################################
+######################################################################
 '''
-src.production.from_raw.build_ref_geo_raw
+src.production.from_raw.build_ref_geo_table
 
-input: raw_panel.parquet
-purpose: build parent reference table for raw panel    
-output: ref_geo_raw.parquet'''
-##################################################
+input: ref_geo_raw.parquet
+purpose: override missing geo-IDs of CN and SD entities with
+        in config.py hardcoded lvl3permids,
+        build final geography reference table, 
+output: ref_geo_table.parquet
+'''
+######################################################################
 
 import wrds
 import pandas as pd
 import config as con
 import log_config as lc
 
-# initialize database
+# intitialize database connection
 db = wrds.Connection(wrds_username = lc.wrds_log)
 
 # load data
@@ -28,7 +31,7 @@ org_ids = org_id.to_list()
 # build ID-string for SQL query 
 orgid_string = ','.join(str(id) for id in org_ids)
 
-# define SQL query to pull geo meta data from WRDS database
+# define SQL query to pull geography reference  
 query = f"""
         SELECT DISTINCT
             p.orgpermid,
@@ -39,12 +42,6 @@ query = f"""
             ON p.domcntrypermid = g.lvl5permid
         WHERE p.orgpermid IN ({orgid_string})
 """
-# execute SQL pull
-ref_geo_raw = db.raw_sql(query)
-
-# save output
-ref_geo_raw.to_parquet(con.REF_GEO_RAW)
-print(f'''"ref_geo_raw.parquet successfully saved."''')
 
 
 
