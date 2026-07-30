@@ -6,7 +6,7 @@ input: raw_panel.parquet, ref_geo_raw.parquet, raw SQL
 purpose: determine_geo_attrition.py reveals an attrition of 1438 entities,
         investigate country of origin and reason for attririon for those entities
 output: out of 9721 entities 9715 have a valid regional ID,
-        of those 1432 entities have no match within the tr_regcntrymap which
+        of those, 1432 entities have no match within the tr_regcntrymap which
         is required for the lvl3permid mapping,
         1431 entities are listed within 105758 domcntrypermid (which is not a valid lvl3permid),
         a sample reveals that 105758 associates to chineese entities,
@@ -18,7 +18,6 @@ output: out of 9721 entities 9715 have a valid regional ID,
         ammend config with harcoded overrides for 110515 and 105758
         not geographically referenceable entities: 6
 '''
-##################################################
 
 import wrds
 import pandas as pd
@@ -32,8 +31,6 @@ db = wrds.Connection(wrds_username=lg.wrds_log)
 raw_panel = pd.read_parquet(con.RAW_PANEL)
 ref_geo_raw = pd.read_parquet(con.REF_GEO_RAW)
 
-
-##############################################
 # define ID string for the SQL query 
 org_id = raw_panel["orgpermid"].dropna().astype('Int64').unique()
 orgid_string = ','.join(str(id) for id in org_id)

@@ -8,29 +8,36 @@ purpose: exclude observations from raw_panel that are not
 output: panel.parquet
 '''
 ##################################################
-
 import pandas as pd
 import config as con
-from collections import Counter
-
 
 # load data
-df = pd.read_parquet(con.RAW_PANEL)
-ref_geo = pd.read_parquet(con.REF_GEOGRAPHY)
+panel = pd.read_parquet(con.RAW_PANEL)
+ref_geo_table = pd.read_parquet(con.REF_GEOGRAPHY, columns=['orgpermid'])
 
-# filter only referenceable entities
-included_entities = ref_geo['orgpermid'].to_list()
+# cast ids to int
+panel['orgpermid'] = panel['orgpermid'].astype('int64')
+ref_geo_table['orgpermid'] = ref_geo_table['orgpermid'].astype('int64')
 
-# create boolean index array  
-indicies = []
-for entity in df['orgpermid']:
-    idx = entity in included_entities
-    indicies.append(idx)
+# define set of geographically referenceable entities
+geo_orgids = set(ref_geo_table['orgpermid'].unique())
 
-frequency = Counter(indicies)
-df_clean = df[indicies]
-assert df_clean['orgpermid'].nunique() == ref_geo['orgpermid'].nunique(), \
-    "Entity mismatch between panel and geography reference"
-print("Assertion passed — panel and geography table describe identical entity universe")
+# keep only observations whose entity is referenceable
+mask = panel['orgpermid'].isin(geo_orgids)
+panel_filtered = panel[mask].copy()
 
-df_clean.to_parquet(con.PANEL, index=False)
+# reporting
+n_entities_before = panel['orgpermid'].nunique()
+n_entities_after  = panel_filtered['orgpermid'].nunique()
+dropped_entities  = set(panel['orgpermid'].unique()) - geo_orgids
+
+print(f"rows:     {len(panel)} -> {len(panel_filtered)} ({len(panel) - len(panel_filtered)} dropped)")
+print(f"entities: {n_entities_before} -> {n_entities_after} ({len(dropped_entities)} dropped)")
+
+# sanity check: no unreferenceable entity should remain
+assert panel_filtered['orgpermid'].isin(geo_orgids).all(), \
+    "unreferenceable entity still present in panel!"
+
+# save output
+panel_filtered.to_parquet(con.PANEL)
+print(f'''"panel.parquet" successfully saved. shape={panel_filtered.shape}''')

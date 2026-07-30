@@ -1,23 +1,24 @@
 ##################################################
 '''
-build_cluster_keys.py
-Create the cluster assigment that is needed for the 
-stratified split. 
+src.production.from_final_panel.build_cluster_keys
 
-Read parent_ent_type.parquet + ref_parents.parquet.
-Produce ref_cluster_keys.parquet with orgpermid,
-cluster_key, parent_typecode, key_source.
-
-Cast all ID columns to a non-float type. 
-
-The assignment logic is build from two masks.
-
-Close with four assertions:
-i) cluster_key has exactly 3 nulls before the singleton fill and zero after singleton
-   cluster assignment,
-ii) the ultimate-branch and immediate-branch key sets are disjoint, 
-iii) entity count pre merge is equal to entity count after merge
-iv) every orgpermid in the panel has exactly one cluster_key
+input: parent_ent_type.parquet, ref_parents.parquet
+purpose: build the cluster assignment needed for the
+        stratified split from two masks (ultimate- and
+        immediate-branch), cast all ID columns to a
+        non-float type,
+output: ref_cluster_keys.parquet with columns orgpermid,
+        cluster_key, parent_typecode, key_source
+assertions:
+        i)   cluster_key has exactly 3 nulls before the
+             singleton fill and zero after singleton
+             cluster assignment,
+        ii)  the ultimate-branch and immediate-branch key
+             sets are disjoint,
+        iii) entity count pre merge equals entity count
+             post merge,
+        iv)  every orgpermid in the panel has exactly one
+             cluster_key
 '''
 ##################################################
 
@@ -113,7 +114,6 @@ assert df_cluster_keys['key_source'].isnull().sum() == 0, '''Unresolved NaN in "
 
 assert df_cluster_keys.groupby('orgpermid')['cluster_key'].nunique().max() == 1, '''Mismatch between orgpermid and cluster key allocation.'''
 print(df_cluster_keys.groupby(['orgpermid', 'cluster_key']).size())
-
 
 # ouput cluster reference file
 df_cluster_keys.to_parquet(con.PROJECT_ROOT / "data" / "raw" / "ref_cluster_keys.parquet", index=False)
