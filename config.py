@@ -12,7 +12,6 @@ RAW_PANEL = DATA_RAW / "raw_panel.parquet"
 REF_WSVAR = DATA_RAW / "ref_ws_variables.parquet"
 REF_GEO_RAW = DATA_RAW / "ref_geo_raw.parquet"
 
-
 # FINAL PANEL
 FINAL_DIR = PROJECT_ROOT / "data" / "final"
 PANEL = FINAL_DIR / "panel.parquet"

@@ -2,7 +2,7 @@
 '''
 src.production.from_final_panel.build_cluster_keys
 
-input: parent_ent_type.parquet, ref_parents.parquet
+input: panel.parquet, ref_parent_ent_type.parquet, ref_parent_table.parquet
 purpose: build the cluster assignment needed for the
         stratified split from two masks (ultimate- and
         immediate-branch), cast all ID columns to a

@@ -3,7 +3,7 @@
 src.production.from_raw.build_ref_geo_raw
 
 input: raw_panel.parquet
-purpose: build parent reference table for raw panel    
+purpose: build geography reference table for raw panel    
 output: ref_geo_raw.parquet'''
 ##################################################
 

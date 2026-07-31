@@ -2,7 +2,7 @@
 '''
 WORK IN PROGRESS
 cluster_condensation.py 
-Load ref_cluster_keys.parquet, assert 8123 nunique cluster_keys,
+Load ref_cluster_keys.parquet, assert  nunique cluster_keys,
 assert 3 singletons present,
 reconcile the 9,695 entities to 8,123 clusters.
 
