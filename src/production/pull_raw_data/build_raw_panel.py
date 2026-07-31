@@ -2,7 +2,7 @@
 ''' 
 src.production.pull_raw_data.build_raw_panel
 
-input: ws_variables_final.csv, SQL
+input: ref_ws_variables.parquet, SQL
 purpose: execute main join via SQL queries across WRDS libraries.
 output: "raw_panel.parquet"                      
 '''

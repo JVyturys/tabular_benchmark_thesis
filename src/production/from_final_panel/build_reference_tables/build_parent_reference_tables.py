@@ -7,7 +7,7 @@ purpose: build a reference table for the organizational parents of
         the entities included in the panel,
         build a reference table that states the company type of the
         ultimate-parent organization of each entity in the panel,
-output: ref_parent.parquet,
+output: ref_parent_table.parquet,
         ref_parent_ent_type.parquet
 '''
 ##################################################
