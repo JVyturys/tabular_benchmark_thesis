@@ -32,6 +32,7 @@ output:
 
 import pandas as pd
 import config as con
+import math
 
 # load data
 df = pd.read_parquet(con.PANEL) 
@@ -64,10 +65,25 @@ grp_ents_per_region = df_ents_per_region.groupby('lvl3permid', dropna=False).siz
 grp_obs_per_region = df_obs_per_region.groupby('lvl3permid', dropna=False).size()
 regional_obs_per_ent = grp_obs_per_region.div(grp_ents_per_region, level='lvl3permid')
 
+split_30 = round(grp_obs_per_region*0.3).astype('int64')
+split_70 = round(grp_obs_per_region*0.7).astype('int64')
+
+split_20 = round(grp_obs_per_region*0.2).astype('int64')
+split_80 = round(grp_obs_per_region*0.8).astype('int64')
+
+split_25 = round(grp_obs_per_region*0.25).astype('int64')
+split_75 = round(grp_obs_per_region*0.75).astype('int64')
+
 df_reg_obs_per_ent = pd.DataFrame({
     "entities" : grp_ents_per_region,
     "observations" : grp_obs_per_region,
-    "obs / entity" : round(regional_obs_per_ent, 2)
+    "obs / entity" : round(regional_obs_per_ent, 2),
+    "70%": split_70,
+    "30%": split_30,
+    "80%": split_80,
+    "20%": split_20,
+    "75%": split_75,
+    "25%": split_25
 })
 
 print(f'''Observations per Region - Share''')
