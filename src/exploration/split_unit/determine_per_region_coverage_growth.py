@@ -21,3 +21,5 @@ df_org = panel[['orgpermid', 'year']]
 df_geo = ref_geo[['orgpermid', 'lvl3permid']]
 
 # extract entry year per orgpermid
+print(f'''Number of new entities per year (excluding 2009):''')
+print(df_org.groupby('orgpermid').year.min().value_counts().sort_index())
