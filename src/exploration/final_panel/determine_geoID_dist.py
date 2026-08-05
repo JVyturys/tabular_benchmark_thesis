@@ -60,7 +60,6 @@ output:
 
 import pandas as pd
 import config as con
-import math
 
 # load data
 df = pd.read_parquet(con.PANEL) 
