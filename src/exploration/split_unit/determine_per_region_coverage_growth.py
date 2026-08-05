@@ -5,9 +5,8 @@ src.exploration.split_unit.determine_per_region_coverage_growth
 input: panel.parquet, ref_geo.parquet
 purpose: determine the rating coverage development in total and
         per region.
-output:        
-        
-        output: Number of new entities per year globally (excluding 2009):
+
+output: Number of new entities per year globally (excluding 2009):
         year
         2009.0    2187
         2010.0     614
