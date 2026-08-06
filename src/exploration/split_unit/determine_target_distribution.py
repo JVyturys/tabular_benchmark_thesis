@@ -12,3 +12,12 @@ output:
 
 '''
 ##################################################
+
+import wrds
+import pandas as pd
+import config as con
+
+# load data
+panel = pd.read_parquet(con.PANEL)
+geo = pd.read_parquet(con.REF_GEOGRAPHY)
+
