@@ -64,18 +64,19 @@ vec_wsref_target = df_target_t1.query('lvl3permid == @ws_ref_regID')['esg_combin
 # calculate WS distance for each region
 grp_target = df_target_t1.groupby('lvl3permid', dropna = False).agg(
     count = ('orgpermid','count'),
+    mean = ('esg_combined_score','mean'),
+    std = ('esg_combined_score','std'),
     min = ('esg_combined_score', 'min'),
     q25 = ('esg_combined_score',lambda x: x.quantile(0.25)),
-    mean = ('esg_combined_score','mean'),
-    q50 = ('esg_combined_score',lambda x: x.quantile(0.5)),
     q75 = ('esg_combined_score',lambda x: x.quantile(0.75)),
     max = ('esg_combined_score', 'max'),
     Wasserstein_dist = ('esg_combined_score', lambda x: wd(vec_wsref_target, x))
 ).sort_values('count', ascending=False)
 
-print(grp_target)
 
-# plot
+
+
+plot
 ## plot WD barplot
 wd_sorted = grp_target['Wasserstein_dist'].sort_values(ascending=False)
 wd_sorted.plot(
