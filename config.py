@@ -24,6 +24,9 @@ REF_PARENT_ENT_TYPE = FINAL_DIR / "ref_parent_ent_type.parquet"
 
 # RESULTS
 RESULTS_DIR = PROJECT_ROOT / "results"
+VIZ = RESULTS_DIR / "visualization"
+VIZ_WD = VIZ / "wassersteindist.png"
+VIZ_TDIST = VIZ / "target_distr_preg.png" 
 
 # BUILD_CLUSTER_KEY CONSTANTS - build_cluster_keys.py
 ULTIMATE_KEY_TYPECODES = ['COM', 'UNK', 'NGO', 'CLGUN']
