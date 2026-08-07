@@ -14,7 +14,7 @@ output:
     number observations relating to impure parents: 6393
     share of regional inpure observations in panel: 7.61%
 
-    Top 10 parents by off-regional-dominant observation frequency:
+    top 10 parents by off-regional-dominant observation frequency:
                 off_dom_share  max_obs_in_single_region  total_obs_in_region  obs_beyond_home
     cluster_key                                                                               
     4295871566           0.496                        69                  137               68
