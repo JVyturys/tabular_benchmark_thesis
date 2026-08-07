@@ -120,5 +120,13 @@ print(df_ents)
 small_regions = [110000,100060, 100087, 100332]
 grp_ents_clust = df_ents.query('lvl3permid.isin(@small_regions)').groupby(['lvl3permid', 'cluster_key']).size()
 print(grp_ents_clust)
-
 print(df_ents.query('lvl3permid == 100218')['cluster_key'].nunique())
+
+t1_regs = con.TIER1_REGS
+print(df_reg_obs_per_ent[['70%','30%']].query('lvl3permid.isin([100218])'))
+print(round((541-68)))
+print(round((541-68)*0.3))
+print(round((541-68)*0.3-30))
+
+
+

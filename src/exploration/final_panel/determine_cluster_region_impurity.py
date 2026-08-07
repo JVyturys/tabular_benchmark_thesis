@@ -28,7 +28,8 @@ output:
     4295890620           0.565                        30                   69               39
     4295869130           0.125                        56                   64                8
     observations beyond "regional-home": 2142
-    share of observations in panel that relate to "beyond-regional-home" observations: 0.025
+    share of observations in panel that relate to "beyond-regional-home" observations: 2.5%
+
 
 '''
 ##################################################
@@ -109,3 +110,5 @@ print(f'''observations beyond "regional-home": {df_off_dominant_share['obs_beyon
 print(f'''share of observations in panel that relate to "beyond-regional-home" observations: {round(df_off_dominant_share['obs_beyond_home'].sum()/len(df_merged),3)}''')
 print(f'''highest off-dominant share: {df_off_dominant_share['off_dom_share'].max()}''')
 print(f'''lowest off-dominant share: {df_off_dominant_share['off_dom_share'].min()}''')
+
+
