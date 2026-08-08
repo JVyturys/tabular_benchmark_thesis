@@ -1,6 +1,6 @@
 ##################################################
 '''
-src.exploration.split_unit.determine_nmb_of_clusters
+src.exploration.split_unit.determine_cluster_summary_stats
 
 input: panel.parquet, ref_cluster_keys.parquet
 purpose: determine the number of clusters based on the cluster key
@@ -11,7 +11,9 @@ output: entities clustered based on ultpar: 8865
         entities with no-parent clusters: 3
 
 
-        number of singleton clusters in panel:7898
+        number of singleton clusters in panel: 7898
+        total number of clusters in panel: 8606
+        share of singleton clusters: 91.77%
 '''
 ##################################################
 
@@ -34,10 +36,9 @@ df_clorg = df_clorg.drop_duplicates(subset=['orgpermid'])
 df_clorg = pd.DataFrame({
     "n_ents_in_clust": df_clorg.groupby('cluster_key').size()
 })
-print(f'''number of singleton clusters in panel:''')
-print(len(df_clorg.query('n_ents_in_clust==1')))
+print(f'''number of singleton clusters in panel: {len(df_clorg.query('n_ents_in_clust==1'))}''')
 
 # determine number of unique clusters
 print(f'''total number of clusters in panel:{df_clstky['cluster_key'].nunique()}''')
-
+print(f'''share of singleton clusters: {round(len(df_clorg.query('n_ents_in_clust==1'))/df_clstky['cluster_key'].nunique(),4)*100}%''')
 
