@@ -11,6 +11,7 @@ output: idx-sets for each partition
 '''
 ##################################################
 
+import numpy as np
 import pandas as pd
 import config as con
 import math 
@@ -33,13 +34,13 @@ df_split = df_split.query('lvl3permid.isin(@regs)')
 pre_merge_len = len(df_split)
 
 # append cluster-home-region columns
-##  define region-cluster distribution h(cluster_key_i, lvl3permid_j)
+# # define region-cluster distribution h(cluster_key_i, lvl3permid_j)
 biv_dist_clgeo = df_split[['lvl3permid', 'cluster_key']].groupby(['cluster_key', 'lvl3permid'], dropna=False).size()
 df_biv_clgeo = pd.DataFrame({
     "n_observations":biv_dist_clgeo
 })
 
-## determine cluster-regions with highest frequency of observations per cluster
+# # determine cluster-regions with highest frequency of observations per cluster
 idx_max = df_biv_clgeo.groupby('cluster_key', dropna=False)['n_observations'].idxmax()
 max_obs = df_biv_clgeo.loc[idx_max]
 df_max_obs = max_obs.reset_index() 
@@ -58,3 +59,40 @@ assert math.isclose(off_home_obs_share, 0.025, abs_tol = 0.0009), 'share of off-
 assert df_split['cluster_home'].isna().sum() == 0, "rows without cluster home in df_split"
 assert df_split['lvl3permid'].nunique() == len(regs), f"number of physical regions in df_split does not allign with number of regions in tier list ({len(regs)})"
 assert len(df_split) == pre_merge_len, "lenght of df_split changed during merge with home regions"
+
+# perform index partition allocation
+# # initiate random number generator and set seed
+rng = np.random.default_rng(seed=con.SEED)
+# # create partition key
+df_partition = df_org.copy()
+df_partition['partition'] = np.nan
+
+# # test-train idex split 
+# for current_region in regs:
+test = True
+if test == True:
+    # select rows of one region
+    df_current = df_split.query('cluster_home == 100087') 
+
+    # create ordered list of clusters based on cluster-sample-size in current region
+    counts = df_current['cluster_key'].value_counts().rename_axis('cluster_key').reset_index(name='freq')
+    counts['rand_weight'] = rng.random(len(counts))
+    ordered_clusters = counts.sort_values(
+    by=['freq', 'rand_weight'], 
+    ascending=[False, True]
+)['cluster_key'].tolist()
+
+    # determine partition goals for current regions; rps
+    synth_reg_size = df_current.groupby('cluster_home').size().sum()
+    train_size_goal = synth_reg_size*con.TRAIN_SHARE
+    test_size_goal = synth_reg_size*con.TEST_SHARE
+
+    
+
+
+
+    
+
+
+
+# for region in df_split['cluster_home']:
