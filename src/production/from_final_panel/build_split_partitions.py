@@ -30,6 +30,7 @@ df_clust = cluster[['orgpermid', 'cluster_key']]
 df_split = df_org.merge(df_geo, on='orgpermid', how='left')
 df_split = df_split.merge(df_clust, on='orgpermid', how='left')
 df_split = df_split.query('lvl3permid.isin(@regs)')
+pre_merge_len = len(df_split)
 
 # append cluster-home-region columns
 ##  define region-cluster distribution h(cluster_key_i, lvl3permid_j)
@@ -52,3 +53,8 @@ df_split = df_split.merge(df_max_obs, on="cluster_key")
 # determine share of observations that have a from physical lvl3permid distinct cluster home
 off_home_obs_share = len(df_split[df_split['lvl3permid']!=df_split['cluster_home']])/len(df_org)
 
+# perform assertions
+assert math.isclose(off_home_obs_share, 0.025, abs_tol = 0.0009), 'share of off-home observations does not allign'
+assert df_split['cluster_home'].isna().sum() == 0, "rows without cluster home in df_split"
+assert df_split['lvl3permid'].nunique() == len(regs), f"number of physical regions in df_split does not allign with number of regions in tier list ({len(regs)})"
+assert len(df_split) == pre_merge_len, "lenght of df_split changed during merge with home regions"
