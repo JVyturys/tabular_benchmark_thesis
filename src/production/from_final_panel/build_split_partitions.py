@@ -72,7 +72,8 @@ df_partition['partition'] = np.nan
 test = True
 if test == True:
     # select rows of one region
-    df_current = df_split.query('cluster_home == 100087') 
+    df_current = df_split.query('cluster_home == 100087')
+    df_current['test_train'] = np.nan 
 
     # create ordered list of clusters based on cluster-sample-size in current region
     counts = df_current['cluster_key'].value_counts().rename_axis('cluster_key').reset_index(name='freq')
@@ -86,10 +87,18 @@ if test == True:
     synth_reg_size = df_current.groupby('cluster_home').size().sum()
     train_size_goal = synth_reg_size*con.TRAIN_SHARE
     test_size_goal = synth_reg_size*con.TEST_SHARE
+    test_size_current = len(df_current.query('test_train=="test"'))
+    train_size_current = len(df_current.query('test_train=="train"'))
 
-    
+    # determine distance to partition goal
+    dist_train = 1 - train_size_current / train_size_goal
+    dist_test = 1 - test_size_current / test_size_goal
 
-
+    # direct cluster to partition 
+    if dist_train > dist_test:
+        pass
+    elif dist_train < dist_train:
+        pass
 
     
 
