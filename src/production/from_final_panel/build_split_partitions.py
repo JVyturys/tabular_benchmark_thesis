@@ -20,3 +20,9 @@ geo = pd.read_parquet(con.REF_GEOGRAPHY)
 cluster = pd.read_parquet(con.REF_CLUSTER_KEYS)
 
 # merge data
+df_org =panel[['orgpermid']]
+df_geo = geo[['orgpermid', 'lvl3permid']]
+df_clust = cluster[['orgpermid', 'cluster_key']]
+df_split = df_org.merge(df_org, on='orgpermid', how='left')
+df_split = df_org.merge(df_geo, on='orgpermid', how='left')
+df_split = df_org.merge(df_clust, on='orgpermid', how='left')
