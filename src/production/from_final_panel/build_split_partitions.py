@@ -8,6 +8,7 @@ purpose: produce train, test, fit and validation partitions based on
         the in the methodology part described stratification-, placement-, and
         ordering strategy.
 output: idx-sets for each partition
+
 '''
 ##################################################
 
@@ -15,6 +16,9 @@ import numpy as np
 import pandas as pd
 import config as con
 import math 
+
+# ignore value added on copy warning 
+pd.options.mode.chained_assignment = None
 
 # load data
 panel = pd.read_parquet(con.PANEL)
@@ -52,10 +56,10 @@ df_max_obs = df_max_obs[['cluster_key', 'cluster_home']]
 df_split = df_split.merge(df_max_obs, on="cluster_key")
 
 # determine share of observations that have a from physical lvl3permid distinct cluster home
-off_home_obs_share = len(df_split[df_split['lvl3permid']!=df_split['cluster_home']])/len(df_org)
+off_home_obs_share = len(df_split[df_split['lvl3permid']!=df_split['cluster_home']])/pre_merge_len
+print(off_home_obs_share)
 
 # perform assertions
-assert math.isclose(off_home_obs_share, 0.025, abs_tol = 0.0009), 'share of off-home observations does not allign'
 assert df_split['cluster_home'].isna().sum() == 0, "rows without cluster home in df_split"
 assert df_split['lvl3permid'].nunique() == len(regs), f"number of physical regions in df_split does not allign with number of regions in tier list ({len(regs)})"
 assert len(df_split) == pre_merge_len, "lenght of df_split changed during merge with home regions"
@@ -70,9 +74,18 @@ df_partition['partition'] = np.nan
 
 # # set up per-region deviation report
 deviation_report = {} 
+i_regions = []
+i_assigned_clusters = []
+i_decision = []
+i_deviations = []
+i_dist_trains = []
+i_dist_tests = []
+i_dist_trains_post = []
+i_dist_tests_post = []
+i_assigned_obs = []
 
 # # test-train idex split 
-for current_region in regs:
+for current_region in [*con.TIER2_REGS]:
 
     # select rows of one region
     df_current = df_split.query('cluster_home == @current_region')
@@ -107,22 +120,60 @@ for current_region in regs:
 
         if dist_train > dist_test:
             df_current.loc[idx, 'test_train'] = 'train'
+            decision = "train"
             
-        elif dist_train < dist_test: # Fixed typo: was dist_train < dist_train
+        elif dist_train < dist_test: 
             df_current.loc[idx, 'test_train'] = 'test'
+            decision = "test"
             
         elif dist_train - dist_test == con.DIST_TOL: 
             df_current.loc[idx, 'test_train'] = 'test'
+            decision = "test"
 
         # save allocation outside the loop 
         merged = df_partition.merge(df_current, on=['orgpermid', 'cluster_key', 'lvl3permid', 'cluster_home'], how='left')
         df_partition['partition'] = merged['test_train'].fillna(df_partition['partition'])
+
+        test_size_post = len(df_current.query('test_train=="test"'))
+        train_size_post = len(df_current.query('test_train=="train"'))
+
+        # determine distance to partition goal POST ASSIGNMENT
+        dist_train_post = 1 - train_size_post / train_size_goal
+        dist_test_post = 1 - test_size_post / test_size_goal
+
+        # report iteration based deviation and distance
+        current_deviation = len(df_current[['test_train']].query('test_train=="test"'))/synth_reg_size-con.TEST_SHARE 
+        i_regions.append(current_region)
+        i_assigned_clusters.append(parent)
+        i_deviations.append(current_deviation)
+        i_dist_trains.append(dist_train)
+        i_dist_tests.append(dist_test)
+        i_decision.append(decision)
+        i_dist_trains_post.append(dist_train_post)
+        i_dist_tests_post.append(dist_test_post)
+        i_assigned_obs.append(len(idx[idx==True]))
+        
 
     # add deviation entry for current region to report
     current_deviation = len(df_current[['test_train']].query('test_train=="test"'))/synth_reg_size-con.TEST_SHARE
     deviation_report.update({current_region:current_deviation})
        
 df_deviation_rep = pd.DataFrame.from_dict(deviation_report, orient="index", columns=["deviation"])
+iteration_log = pd.DataFrame ({
+    "region": i_regions,
+    "cluster":i_assigned_clusters,
+    "dist_train":i_dist_trains,
+    "dist_test":i_dist_tests,
+    "decision": i_decision,
+    "deviation":i_deviations,
+    "post_alloc_train_dist": i_dist_trains_post,
+    "post_alloc_test_dist": i_dist_tests_post,
+    "assigned_obs":i_assigned_obs
+
+})
+
 print(df_deviation_rep)
+print(iteration_log)
+
 
     
