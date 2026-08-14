@@ -178,7 +178,6 @@ outer_iteration_log = pd.DataFrame ({
 
 })
 
-
 print(f'''train-test split performed \n''')
 
 # perform index partition allocation for fit-val
@@ -217,7 +216,7 @@ with alive_bar(len(regs), title="processing inner split") as bar:
         # determine partition goals for current regions; rps
         synth_reg_size = df_current.groupby('cluster_home').size().sum()
 
-        print(f'''synth-reg for {current_region}: {synth_reg_size}\n
+        print(f'''synth-reg for {current_region}: {synth_reg_size} 
                 vs. size of train partition: {len(df_inner_split.query('cluster_home==@current_region and test_train=="train" '))} ''')
 
         fit_size_goal = synth_reg_size*con.FIT_SHARE
@@ -317,8 +316,54 @@ print(f'''innter iteration log''')
 print(inner_iteration_log[["cluster","decision"]])
 print(f'''\n''')
 print(f'''final partitions''')
-print(df_val_partition["fit_val"])
+
+print(df_partition[['test_train']].groupby(['test_train']).size())
 print(df_partition[['test_train', 'fit_val']].groupby(['test_train', 'fit_val']).size())
 
+# create off-home leakage report
+df_test_leakage = df_inner_split[['orgpermid', 'lvl3permid', 'cluster_home', 'test_train']].query('test_train == "test"').copy()
+df_train_leakage = df_inner_split[['orgpermid', 'lvl3permid', 'cluster_home', 'test_train']].query('test_train == "train"').copy()
 
+df_fit_leakage = df_inner_split.merge(df_partition[['orgpermid', 'fit_val']], on='orgpermid', validate='many_to_one')
+df_val_leakage = df_inner_split.merge(df_partition[['orgpermid', 'fit_val']], on='orgpermid', validate='many_to_one')
+df_fit_leakage = df_fit_leakage[['orgpermid', 'lvl3permid', 'cluster_home', 'fit_val']].query('fit_val == "fit"').copy()
+df_val_leakage = df_val_leakage[['orgpermid', 'lvl3permid', 'cluster_home', 'fit_val']].query('fit_val == "val"').copy()
 
+reports = [df_train_leakage, df_test_leakage, df_fit_leakage, df_val_leakage]
+
+l_train = len(df_train_leakage)
+l_test = len(df_test_leakage)
+l_fit = len(df_fit_leakage)
+l_val = len(df_val_leakage)
+
+off_leakage_rep = []
+
+with alive_bar(len(reports), title="processing leakage-reports") as bar:
+    for report in reports:
+        for reg in regs:
+            leakage_collector = []
+            reg_report = {}
+            print(f"calculating off-home leakage for region {reg}")
+            partition_size = len(report)
+            nmb_off_home_obs = (report['lvl3permid']!=report['cluster_home']).sum()
+            leakage = nmb_off_home_obs / partition_size
+            leakage_collector.append(leakage)
+            if len(report) == l_train:
+                partition = "train"
+            elif len(report) == l_test:
+                partition = "test"
+            elif len(report) == l_fit:
+                partition = "fit"
+            elif len(report):
+                partition = "val"
+            reg_report.update({f"{partition} {reg}": leakage_collector})
+            reg_report = pd.DataFrame.from_dict(reg_report)
+            off_leakage_rep.append(reg_report)
+    
+    bar()
+
+df_reports_finished = pd.concat(off_leakage_rep)
+df_reports_finished = df_reports_finished.melt(var_name="cluster_home", value_name="off-home-leakage").dropna()
+df_reports_finished[['partition','home ID']] = df_reports_finished['cluster_home'].str.split(' ', expand=True)
+df_reports_finished = df_reports_finished.drop(columns=['cluster_home'])
+print(df_reports_finished)
