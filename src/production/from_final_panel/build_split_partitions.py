@@ -194,12 +194,16 @@ i_dist_vals = []
 i_dist_fits_post = []
 i_dist_vals_post = []
 i_assigned_obs = []
+print(df_partition.columns)
+# enrich obs-grain data frame with test-train partition info
+df_inner_split = df_split.merge(df_partition[['orgpermid', 'test_train']], on='orgpermid', validate='many_to_one')
+print(df_inner_split.columns)
     
 # # fit-val index split 
 with alive_bar(len(regs), title="processing inner split") as bar:
     for current_region in regs:
         # select rows of one region
-        df_current = df_partition.query('cluster_home == @current_region and test_train == "train" ').copy()
+        df_current = df_inner_split.query('cluster_home == @current_region and test_train == "train" ').copy()
         df_current['fit_val'] = None 
 
         # create ordered list of clusters based on cluster-sample-size in current region, random order on ties
@@ -212,6 +216,10 @@ with alive_bar(len(regs), title="processing inner split") as bar:
 
         # determine partition goals for current regions; rps
         synth_reg_size = df_current.groupby('cluster_home').size().sum()
+
+        print(f'''synth-reg for {current_region}: {synth_reg_size}\n
+                vs. size of train partition: {len(df_inner_split.query('cluster_home==@current_region and test_train=="train" '))} ''')
+
         fit_size_goal = synth_reg_size*con.FIT_SHARE
         val_size_goal = synth_reg_size*con.VAL_SHARE
         fit_size_current = len(df_current.query('fit_val=="fit"'))
@@ -233,7 +241,7 @@ with alive_bar(len(regs), title="processing inner split") as bar:
                 df_current.loc[idx, 'fit_val'] = 'fit'
                 decision = "fit"
                 
-            if dist_fit < dist_val:
+            elif dist_fit < dist_val:
                 df_current.loc[idx, 'fit_val'] = 'val'
                 decision = "val"
                 
