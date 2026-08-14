@@ -196,7 +196,7 @@ i_assigned_obs = []
 print(df_partition.columns)
 # enrich obs-grain data frame with test-train partition info
 df_inner_split = df_split.merge(df_partition[['orgpermid', 'test_train']], on='orgpermid', validate='many_to_one')
-print(df_inner_split.columns)
+nmb_train_ents = df_inner_split['orgpermid'].nunique()
     
 # # fit-val index split 
 with alive_bar(len(regs), title="processing inner split") as bar:
@@ -284,7 +284,7 @@ with alive_bar(len(regs), title="processing inner split") as bar:
 df_val_partition = pd.concat(collector)
 
 # # check if all entities are assigned
-assert nmb_ents == df_partition['orgpermid'].nunique(), f"number of entities after partitioning != {nmb_ents}"
+assert nmb_ents == df_val_partition['orgpermid'].nunique(), f"number of entities after partitioning != {nmb_train_ents}"
 
 df_inn_deviation_rep = pd.DataFrame.from_dict(inner_deviation_report, orient="index", columns=["inner_deviation"])
 inner_iteration_log = pd.DataFrame ({
