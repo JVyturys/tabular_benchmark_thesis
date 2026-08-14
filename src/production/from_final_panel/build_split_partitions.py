@@ -329,41 +329,4 @@ df_val_leakage = df_inner_split.merge(df_partition[['orgpermid', 'fit_val']], on
 df_fit_leakage = df_fit_leakage[['orgpermid', 'lvl3permid', 'cluster_home', 'fit_val']].query('fit_val == "fit"').copy()
 df_val_leakage = df_val_leakage[['orgpermid', 'lvl3permid', 'cluster_home', 'fit_val']].query('fit_val == "val"').copy()
 
-reports = [df_train_leakage, df_test_leakage, df_fit_leakage, df_val_leakage]
 
-l_train = len(df_train_leakage)
-l_test = len(df_test_leakage)
-l_fit = len(df_fit_leakage)
-l_val = len(df_val_leakage)
-
-off_leakage_rep = []
-
-with alive_bar(len(reports), title="processing leakage-reports") as bar:
-    for report in reports:
-        for reg in regs:
-            leakage_collector = []
-            reg_report = {}
-            print(f"calculating off-home leakage for region {reg}")
-            partition_size = len(report)
-            nmb_off_home_obs = (report['lvl3permid']!=report['cluster_home']).sum()
-            leakage = nmb_off_home_obs / partition_size
-            leakage_collector.append(leakage)
-            if len(report) == l_train:
-                partition = "train"
-            elif len(report) == l_test:
-                partition = "test"
-            elif len(report) == l_fit:
-                partition = "fit"
-            elif len(report):
-                partition = "val"
-            reg_report.update({f"{partition} {reg}": leakage_collector})
-            reg_report = pd.DataFrame.from_dict(reg_report)
-            off_leakage_rep.append(reg_report)
-    
-    bar()
-
-df_reports_finished = pd.concat(off_leakage_rep)
-df_reports_finished = df_reports_finished.melt(var_name="cluster_home", value_name="off-home-leakage").dropna()
-df_reports_finished[['partition','home ID']] = df_reports_finished['cluster_home'].str.split(' ', expand=True)
-df_reports_finished = df_reports_finished.drop(columns=['cluster_home'])
-print(df_reports_finished)
