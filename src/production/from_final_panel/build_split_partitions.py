@@ -320,15 +320,23 @@ print(f'''final partitions''')
 print(df_partition[['test_train']].groupby(['test_train']).size())
 print(df_partition[['test_train', 'fit_val']].groupby(['test_train', 'fit_val']).size())
 
-# create off-home leakage report
-df_test_leakage = df_inner_split[['orgpermid', 'lvl3permid', 'cluster_home', 'test_train']].query('test_train == "test"').copy()
-df_train_leakage = df_inner_split[['orgpermid', 'lvl3permid', 'cluster_home', 'test_train']].query('test_train == "train"').copy()
+# merge partition columns
+df_partition['partition'] = np.where(df_partition['test_train']=="train", df_partition['fit_val'], df_partition['test_train'])
 
-df_fit_leakage = df_inner_split.merge(df_partition[['orgpermid', 'fit_val']], on='orgpermid', validate='many_to_one')
-df_val_leakage = df_inner_split.merge(df_partition[['orgpermid', 'fit_val']], on='orgpermid', validate='many_to_one')
-df_fit_leakage = df_fit_leakage[['orgpermid', 'lvl3permid', 'cluster_home', 'fit_val']].query('fit_val == "fit"').copy()
-df_val_leakage = df_val_leakage[['orgpermid', 'lvl3permid', 'cluster_home', 'fit_val']].query('fit_val == "val"').copy()
+# save split artifact
+split = df_partition[['orgpermid','partition']].copy()
+assert split['partition'].isna().sum() == 0, "NaN in partion columns" 
+assert split['partition'].isin(['test','fit','val']).all(), "incorrect level(s) in partition column " 
+
+split.to_parquet(con.SPLIT)
 
 # off-home leakage
-# # fan out partitions to row grain
-df_leakage = df_split.merge(df_partition[['orgpermid', 'test_train', 'fit_val']], on='orgpermid', validate='many_to_one')
+# # fan out partitions to observations
+df_leakage = df_split.merge(df_partition[['orgpermid', 'test_train', 'fit_val', 'partition']], on='orgpermid', validate='many_to_one')
+
+# # create reports
+tetr_leak = df_leakage.query('partition in ["fit", "val"] ' ).groupby(['cluster_home']).size()
+fit_val_leak = df_leakage.query('cluster_home != lvl3permid').groupby(['fit_val', 'cluster_home']).size()
+
+
+

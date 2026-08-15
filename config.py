@@ -12,7 +12,7 @@ RAW_PANEL = DATA_RAW / "raw_panel.parquet"
 REF_WSVAR = DATA_RAW / "ref_ws_variables.parquet"
 REF_GEO_RAW = DATA_RAW / "ref_geo_raw.parquet"
 
-# FINAL PANEL
+## FINAL PANEL
 FINAL_DIR = PROJECT_ROOT / "data" / "final"
 PANEL = FINAL_DIR / "panel.parquet"
 
@@ -22,11 +22,17 @@ REF_GEOGRAPHY = FINAL_DIR / "ref_geo_table.parquet"
 REF_PARENT =  FINAL_DIR / "ref_parent_table.parquet"
 REF_PARENT_ENT_TYPE = FINAL_DIR / "ref_parent_ent_type.parquet"
 
-# RESULTS
+## RESULTS
 RESULTS_DIR = PROJECT_ROOT / "results"
 VIZ = RESULTS_DIR / "visualization"
 VIZ_WD = VIZ / "wassersteindist.png"
 VIZ_TDIST = VIZ / "target_distr_preg.png" 
+
+## SPLIT PARTITIONS
+SPLIT = FINAL_DIR / "split.parquet"
+
+
+
 
 # BUILD_CLUSTER_KEY CONSTANTS - build_cluster_keys.py
 ULTIMATE_KEY_TYPECODES = ['COM', 'UNK', 'NGO', 'CLGUN']
@@ -50,3 +56,4 @@ FIT_SHARE = (6/7)
 VAL_SHARE = (1/7)
 SEED = 17
 DIST_TOL = 0
+
