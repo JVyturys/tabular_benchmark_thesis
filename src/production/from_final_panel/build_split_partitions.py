@@ -329,4 +329,6 @@ df_val_leakage = df_inner_split.merge(df_partition[['orgpermid', 'fit_val']], on
 df_fit_leakage = df_fit_leakage[['orgpermid', 'lvl3permid', 'cluster_home', 'fit_val']].query('fit_val == "fit"').copy()
 df_val_leakage = df_val_leakage[['orgpermid', 'lvl3permid', 'cluster_home', 'fit_val']].query('fit_val == "val"').copy()
 
-
+# off-home leakage
+# # fan out partitions to row grain
+df_leakage = df_split.merge(df_partition[['orgpermid', 'test_train', 'fit_val']], on='orgpermid', validate='many_to_one')
