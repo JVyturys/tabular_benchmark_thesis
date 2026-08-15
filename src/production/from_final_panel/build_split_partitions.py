@@ -7,7 +7,102 @@ input: panel.parquet, ref_geography.parquet, cluster_keys.parquet,
 purpose: produce train, test, fit and validation partitions based on 
         the in the methodology part described stratification-, placement-, and
         ordering strategy.
-output: idx-sets for each partition
+output: idx-sets for each partition, deviation-report, off-home-leakage
+
+        outer dev report:
+                deviation
+        100277  -0.000057
+        100090   0.000574
+        100334  -0.000022
+        103384   0.000089
+        100024   0.000000
+        100279   0.000165
+        100089   0.000020
+        100219  -0.000036
+        100223   0.000033
+        103401   0.000208
+        100276   0.000086
+        100218   0.003030
+        100278  -0.000050
+        100060   0.170588
+        100087   0.026923
+        100332   0.033333
+
+               inner_deviation
+        100277         0.000234
+        100090         0.001758
+        100334         0.000090
+        103384         0.000274
+        100024         0.000000
+        100279         0.000269
+        100089         0.000032
+        100219         0.000148
+        100223         0.000100
+        103401         0.000000
+        100276         0.000059
+        100218         0.006211
+        100278         0.000558
+        100060         0.357143
+        100087         0.171429
+        100332         0.084416
+
+        off-home leakage per partition and region
+                partition cluster_home               
+        fit     100024         35  0.009289
+                100060          0  0.000000
+                100087          0  0.000000
+                100089        212  0.013936
+                100090         54  0.064748
+                100218          0  0.000000
+                100219         78  0.023537
+                100223        164  0.022368
+                100276        125  0.029947
+                100277         53  0.050573
+                100278         35  0.014505
+                100279         74  0.040659
+                100332          0  0.000000
+                100334        247  0.045421
+                103384        105  0.039150
+                103401         34  0.016815
+        test    100024         49  0.026008
+                100060          0  0.000000
+                100087          0  0.000000
+                100089        102  0.013409
+                100090         18  0.042959
+                100218          0  0.000000
+                100219         16  0.009656
+                100223        106  0.028906
+                100276        110  0.052682
+                100277         12  0.022901
+                100278          4  0.003314
+                100279         54  0.059276
+                100332          0  0.000000
+                100334        119  0.043766
+                103384         94  0.070045
+                103401          6  0.005929
+        val     100024          0  0.000000
+                100060          0  0.000000
+                100087          0  0.000000
+                100089         12  0.004732
+                100090          0  0.000000
+                100218          0  0.000000
+                100219         17  0.030741
+                100223         39  0.031889
+                100276          0  0.000000
+                100277         20  0.114286
+                100278         39  0.096535
+                100279         17  0.055921
+                100332          0  0.000000
+                100334         54  0.059537
+                103384         33  0.073661
+                103401          0  0.000000
+
+
+
+
+
+
+
 
 '''
 ##################################################
@@ -196,7 +291,7 @@ i_assigned_obs = []
 print(df_partition.columns)
 # enrich obs-grain data frame with test-train partition info
 df_inner_split = df_split.merge(df_partition[['orgpermid', 'test_train']], on='orgpermid', validate='many_to_one')
-nmb_train_ents = df_inner_split['orgpermid'].nunique()
+nmb_train_ents = df_inner_split.loc[df_inner_split["test_train"]=="train", 'orgpermid'].nunique()
     
 # # fit-val index split 
 with alive_bar(len(regs), title="processing inner split") as bar:
@@ -284,7 +379,7 @@ with alive_bar(len(regs), title="processing inner split") as bar:
 df_val_partition = pd.concat(collector)
 
 # # check if all entities are assigned
-assert nmb_ents == df_val_partition['orgpermid'].nunique(), f"number of entities after partitioning != {nmb_train_ents}"
+assert nmb_train_ents == df_val_partition['orgpermid'].nunique(), f"number of entities after partitioning != {nmb_train_ents} (= {df_val_partition['orgpermid'].nunique()})"
 
 df_inn_deviation_rep = pd.DataFrame.from_dict(inner_deviation_report, orient="index", columns=["inner_deviation"])
 inner_iteration_log = pd.DataFrame ({
@@ -326,8 +421,7 @@ df_partition['partition'] = np.where(df_partition['test_train']=="train", df_par
 # save split artifact
 split = df_partition[['orgpermid','partition']].copy()
 assert split['partition'].isna().sum() == 0, "NaN in partion columns" 
-assert split['partition'].isin(['test','fit','val']).all(), "incorrect level(s) in partition column " 
-
+assert split['partition'].isin(['test','fit','val']).all(), "incorrect level(s) in partition column"
 split.to_parquet(con.SPLIT)
 
 # off-home leakage
@@ -335,8 +429,11 @@ split.to_parquet(con.SPLIT)
 df_leakage = df_split.merge(df_partition[['orgpermid', 'test_train', 'fit_val', 'partition']], on='orgpermid', validate='many_to_one')
 
 # # create reports
-tetr_leak = df_leakage.query('partition in ["fit", "val"] ' ).groupby(['cluster_home']).size()
-fit_val_leak = df_leakage.query('cluster_home != lvl3permid').groupby(['fit_val', 'cluster_home']).size()
+df_leakage['off_home'] = df_leakage['cluster_home'] != df_leakage['lvl3permid']
+report = (df_leakage.groupby('partition')
+                    .apply(lambda g: g.groupby('cluster_home')['off_home'].agg(['sum','mean'])))
+
+print(report)
 
 
 
