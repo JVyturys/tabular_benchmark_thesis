@@ -9,6 +9,26 @@ purpose: produce train, test, fit and validation partitions based on
         ordering strategy.
 output: idx-sets for each partition, deviation-report, off-home-leakage
 
+        partition-sizes:
+        partition       fit  test   val
+        cluster_home                   
+        100024         3768  1884   628
+        100060            9    16     9 
+        100087           24    17    11  
+        100089        15212  7607  2536
+        100090          834   419   141
+        100218          274   140    48
+        100219         3314  1657   553
+        100223         7332  3667  1223
+        100276         4174  2088   696
+        100277         1048   524   175
+        100278         2413  1207   404
+        100279         1820   911   304
+        100332           17    11     5 
+        100334         5438  2719   907
+        103384         2682  1342   448
+        103401         2022  1012   337
+
         outer dev report:
                 deviation
         100277  -0.000057
@@ -97,13 +117,7 @@ output: idx-sets for each partition, deviation-report, off-home-leakage
                 103384         33  0.073661
                 103401          0  0.000000
 
-
-
-
-
-
-
-
+                
 '''
 ##################################################
 
@@ -311,9 +325,6 @@ with alive_bar(len(regs), title="processing inner split") as bar:
         # determine partition goals for current regions; rps
         synth_reg_size = df_current.groupby('cluster_home').size().sum()
 
-        print(f'''synth-reg for {current_region}: {synth_reg_size} 
-                vs. size of train partition: {len(df_inner_split.query('cluster_home==@current_region and test_train=="train" '))} ''')
-
         fit_size_goal = synth_reg_size*con.FIT_SHARE
         val_size_goal = synth_reg_size*con.VAL_SHARE
         fit_size_current = len(df_current.query('fit_val=="fit"'))
@@ -435,5 +446,4 @@ report = (df_leakage.groupby('partition')
 
 print(report)
 
-
-
+print(df_leakage.groupby('cluster_home').apply(lambda g: g.groupby('partition')['partition'].size()))
