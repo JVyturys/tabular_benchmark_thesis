@@ -8,10 +8,10 @@ purpose: determine target distribution of fit and validation
 output: 
         fit vs. val target-distribution:
         wsd: 0.002406875068561614
-        mean : 0.448734102804331
-        mean : 0.44650085153302077
-        std : 0.20013903078770717
-        std : 0.19926944581152128
+        fit mean : 0.448734102804331
+        val mean : 0.44650085153302077
+        fit std : 0.20013903078770717
+        val std : 0.19926944581152128
 
         fit vs. val target-distributions per region
         region  n_obs  wsd_target  fit_mean  val_mean   fit_std   val_std
@@ -55,10 +55,10 @@ wsd_target = wsd(fit_part['esg_combined_score'], val_part['esg_combined_score'])
 
 print(f'''fit vs. val target-distribution:''')
 print(f'''wsd: {wsd_target}''')
-print(f'''mean : {fit_part['esg_combined_score'].mean()}''')
-print(f'''mean : {val_part['esg_combined_score'].mean()}''')
-print(f'''std : {fit_part['esg_combined_score'].std()}''')
-print(f'''std : {val_part['esg_combined_score'].std()}''')
+print(f'''fit mean : {fit_part['esg_combined_score'].mean()}''')
+print(f'''val mean : {val_part['esg_combined_score'].mean()}''')
+print(f'''fit std : {fit_part['esg_combined_score'].std()}''')
+print(f'''val std : {val_part['esg_combined_score'].std()}''')
 
 
 # determine Wasserstein Distance and distributional parameters per region
