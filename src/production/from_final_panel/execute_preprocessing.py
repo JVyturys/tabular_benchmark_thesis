@@ -7,6 +7,9 @@ purpose: define the preprocessing constants for feature selection
         and scaling using the median-imputation induced variance loss.
         
 output: pre_processing_constants.parquet
+
+        degenereate variances = {item4450, item3448, , item4452 , item4799, item3257}
+
 '''
 ##################################################
 import pandas as pd
