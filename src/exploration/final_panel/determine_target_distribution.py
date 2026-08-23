@@ -1,6 +1,6 @@
 ##################################################
 '''
-src.exploration.split_unit.determine_target_distribution
+src.exploration.final_panel.determine_target_distribution
 
 
 input: panel.parquet, ref_geography.parquet
@@ -81,22 +81,44 @@ print(grp_target)
 
 # plot
 ## plot WD barplot
-wd_sorted = grp_target['Wasserstein_dist'].sort_values(ascending=False)
+plt.style.use('seaborn-v0_8-whitegrid')
+
+
+wd_sorted = grp_target['Wasserstein_dist'].sort_values(ascending=True)
+
+fig, ax = plt.subplots(figsize=(10, 6))
+
 wd_sorted.plot(
     kind='barh',
-    color='steelblue',
-    figsize=(10, 6),
-    title='Wasserstein Distance from Reference Region (100089) '
+    color="#1f4e79",  
+    ax=ax,
+    width=0.75
 )
-plt.xlabel("Distance")
-plt.ylabel("Region")
+
+ax.set_title(
+    "Wasserstein Distance from Reference Region (100089)",
+    pad=15,
+    fontweight='bold'
+)
+ax.set_xlabel("Distance", labelpad=10)
+ax.set_ylabel("Region")
+
+# add vertical grid lines 
+ax.grid(True, axis='x', linestyle="--", alpha=0.5)
+ax.grid(False, axis='y')
+
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['left'].set_color('#cccccc')
+ax.spines['bottom'].set_color('#cccccc')
+
 plt.tight_layout()
-plt.savefig(con.VIZ_WD, dpi=600)
+plt.savefig(con.VIZ_WD, dpi=600, bbox_inches='tight')
 plt.show()
 
 
 ## plot target dist per region - sample size sorted boxplots with logscale color gradient 
-sns.set_theme(style="whitegrid")
+plt.style.use('seaborn-v0_8-whitegrid')
 
 group_counts = df_target_t1["lvl3permid"].value_counts()
 group_order = group_counts.index
@@ -107,9 +129,9 @@ color_palette = {
     group: cmap(0.35 + 0.65 * norm(count)) for group, count in group_counts.items()
 }
 
-plt.figure(figsize=(14, 7))
+fig, ax = plt.subplots(figsize=(14, 7))
 
-ax = sns.boxplot(
+sns.boxplot(
     data=df_target_t1,
     x="lvl3permid",
     y="esg_combined_score",
@@ -117,6 +139,9 @@ ax = sns.boxplot(
     hue="lvl3permid",
     palette=color_palette,
     legend=False,
+    ax=ax,
+    linewidth=1.2,
+    fliersize=3
 )
 
 y_min = df_target_t1["esg_combined_score"].min()
@@ -138,19 +163,27 @@ for i, group in enumerate(group_order):
         ha="left",  
         va="bottom",
         rotation=45,  
-        fontsize=8,
-        color="#444444",
+        fontsize=8.5,
+        color="#555555",
         fontstyle="italic",
     )
 
-plt.title(
-    "ESG Combined Score Distribution \n Per Region",
-    fontsize=14,
-    pad=25,
+ax.set_title(
+    "ESG Combined Score Distribution\nPer Region",
+    pad=15,
+    fontweight='bold'
 )
-plt.xlabel("Level 3 PermID", fontsize=11, labelpad=15)
-plt.ylabel("ESG Combined Score", fontsize=11)
+ax.set_xlabel("Level 3 PermID", labelpad=10)
+ax.set_ylabel("ESG Combined Score")
+
+ax.grid(True, axis='y', linestyle="--", alpha=0.5)
+ax.grid(False, axis='x')
+
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['left'].set_color('#cccccc')
+ax.spines['bottom'].set_color('#cccccc')
 
 plt.tight_layout()
-plt.savefig(con.VIZ_TDIST, dpi=600)
+plt.savefig(con.VIZ_TDIST, dpi=600, bbox_inches='tight')
 plt.show()

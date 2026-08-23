@@ -11,6 +11,9 @@ output:
 import pandas as pd
 import config as con
 from utils import variance_loss as vl
+from utils import vl_cut_off as vlc
+import seaborn as sns
+
 
 
 # load data
@@ -24,7 +27,17 @@ fit = fit.query('partition=="fit"')
 assert fit['partition'].unique() == ['fit'], "conatminated fit partition"
 fit_features = fit.drop(columns=['orgpermid', "partition"])
 
-print(vl(fit_features).sort_values(by="variance_loss", ascending=False))
+# determine variance loss
+cuoff_metrics = vl(fit_features)
+cuoff_metrics = cuoff_metrics.loc[cuoff_metrics['variance_loss'].isna()==False].sort_values(by='variance_loss')
+
+# determine kneedle
+co_idx, co_vl = vlc(cuoff_metrics['variance_loss'])
+
+fit_post_co = cuoff_metrics.query('variance_loss > @co_vl').copy()
+print(fit_post_co.shape)
+print(fit_post_co.columns)
+
 
 
 

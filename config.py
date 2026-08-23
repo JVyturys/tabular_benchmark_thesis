@@ -27,6 +27,7 @@ RESULTS_DIR = PROJECT_ROOT / "results"
 VIZ = RESULTS_DIR / "visualization"
 VIZ_WD = VIZ / "wassersteindist.png"
 VIZ_TDIST = VIZ / "target_distr_preg.png" 
+VIZ_CUTOFF = VIZ / "cutoff_kneedle.png"
 
 ## SPLIT PARTITIONS
 SPLIT = FINAL_DIR / "split.parquet"

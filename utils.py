@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import config as con
 import math
+import matplotlib.pyplot as plt
 
 def variance_loss(x):
     '''determine the changes in variance (VL) for all variables of a dataset 
@@ -96,3 +97,120 @@ def variance_loss(x):
     })
 
     return df_vl
+
+def vl_cut_off(x):
+    '''
+    Determine set of column indicies to be dropped from the dataset based on their variance losses.
+    Determine the set by:
+        - plotting the VL in ascending order against column indicies,
+        - calculating a straight diagonal "baseline" connecting the start and end points of the curve,
+        - finding the point of maximum distance between the curve and the baseline.
+    input: - (v,2) data frame sorted ascendingly by column 1,
+            column 1: VL values, column 2: variable indicies / names
+
+    output: 
+        - tupel (x, VL(x)) that determines the cutoff
+        - plotted "kneedle" graph
+    '''
+
+    # determine linear function between start and endpoint
+    ## set start & end points
+
+    x = x.reset_index(drop=True)
+
+    n_points = len(x)
+    x_indices = np.arange(n_points)
+
+    vl_start = x.iloc[0]
+    vl_end = x.iloc[-1]
+
+    # determine linear function between start and endpoint
+    m = (vl_end - vl_start) / (n_points -1)
+    lin_func = m * x_indices + vl_start
+
+    # determine cut off idx
+    distance_to_curve = pd.Series(lin_func-x)
+    max_dist_vl = max(distance_to_curve)
+
+    # use vl-distribution referential cut-off fallback rule 
+    if (distance_to_curve == max_dist_vl).sum() == 1:
+        print(f"PASS")
+        max_dist_idx = distance_to_curve.argmax() 
+        kneedle_curve_val = x.iloc[max_dist_idx]
+        kneedle_lin_val = lin_func[max_dist_idx]
+        
+    else:
+        fallback_target = np.var(x) + np.mean(x)
+        closest_idx = (x - fallback_target).abs().argmin()
+        max_dist_vl = fallback_target
+        kneedle_curve_val = x.iloc[closest_idx]
+        kneedle_lin_val = lin_func[closest_idx]
+
+    # plot curves
+    plt.style.use('seaborn-v0_8-whitegrid')
+
+    color_curve = "#1f4e79"
+    color_linear = "#a6a6a6"
+    color_kneedle = "#d9534f"
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    ax.plot(
+        x_indices, 
+        x, 
+        label="Variance Loss", 
+        color=color_curve, 
+        linewidth=1.5,
+        zorder=3
+    )
+
+    ax.plot(
+        x_indices,
+        lin_func,
+        label="Linear Connection",
+        linestyle="--",
+        color=color_linear,
+        linewidth=1.0,
+        zorder=2
+    )
+
+    ax.vlines(
+        x=max_dist_idx,
+        ymin=min(kneedle_curve_val, kneedle_lin_val),
+        ymax=max(kneedle_curve_val, kneedle_lin_val),
+        color=color_kneedle,
+        linestyle=":",
+        linewidth=1.5,
+        label=f"Cut-off Point (Idx: {max_dist_idx})",
+        zorder=4
+    )
+
+    ax.scatter(
+        max_dist_idx, 
+        kneedle_curve_val, 
+        color=color_kneedle, 
+        s=30, 
+        zorder=5, 
+        label=f"VL: {x.iloc[max_dist_idx]:.3f}\nDist: {max_dist_vl:.3f}"
+    )
+
+    ax.set_xlabel("Feature Index")
+    ax.set_ylabel("Variance Loss")
+    ax.set_title(
+        f"Variance Loss Based Feature Selection\n"
+        f"Number of excluded features: {len(x) - max_dist_idx + 1}", 
+        fontweight='bold'
+    )
+
+    ax.legend(fontsize=9, frameon=True, fancybox=True, shadow=False)
+    ax.grid(True, linestyle="--", alpha=0.5)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    plt.tight_layout()
+    plt.savefig(con.VIZ_CUTOFF, dpi=600, bbox_inches='tight')
+    plt.show()
+
+    return max_dist_idx, max_dist_vl
+
