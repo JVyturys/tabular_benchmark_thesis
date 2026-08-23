@@ -64,7 +64,7 @@ def variance_loss(x):
             median_x_o = np.median(x_o)
     
             # calculate variance
-            variance_x_o = np.var(x_o)
+            variance_x_o = np.var(x_o, ddof=0)
 
             # calculate variance loss 
             if math.isclose(variance_x_o, 0):
@@ -133,18 +133,18 @@ def vl_cut_off(x):
     max_dist_vl = max(distance_to_curve)
 
     # use vl-distribution referential cut-off fallback rule 
-    if (distance_to_curve == max_dist_vl).sum() == 1:
+    if all(distance_to_curve - max_dist_vl <= 0)  == True:
         print(f"PASS")
         max_dist_idx = distance_to_curve.argmax() 
         kneedle_curve_val = x.iloc[max_dist_idx]
         kneedle_lin_val = lin_func[max_dist_idx]
         
     else:
-        fallback_target = np.var(x) + np.mean(x)
-        closest_idx = (x - fallback_target).abs().argmin()
+        fallback_target = np.sqrt(np.var(x)) + np.mean(x)
+        max_dist_idx = (x - fallback_target).abs().argmin()
         max_dist_vl = fallback_target
-        kneedle_curve_val = x.iloc[closest_idx]
-        kneedle_lin_val = lin_func[closest_idx]
+        kneedle_curve_val = x.iloc[max_dist_idx]
+        kneedle_lin_val = lin_func[max_dist_idx]
 
     # plot curves
     plt.style.use('seaborn-v0_8-whitegrid')
@@ -181,7 +181,7 @@ def vl_cut_off(x):
         color=color_kneedle,
         linestyle=":",
         linewidth=1.5,
-        label=f"Cut-off Point (Idx: {max_dist_idx})",
+        label=f"Cut-off Point",
         zorder=4
     )
 
@@ -198,7 +198,7 @@ def vl_cut_off(x):
     ax.set_ylabel("Variance Loss")
     ax.set_title(
         f"Variance Loss Based Feature Selection\n"
-        f"Number of excluded features: {len(x) - max_dist_idx + 1}", 
+        f"Number of excluded fetures: {(x>x.loc[max_dist_idx]).sum()}", 
         fontweight='bold'
     )
 
@@ -212,5 +212,5 @@ def vl_cut_off(x):
     plt.savefig(con.VIZ_CUTOFF, dpi=600, bbox_inches='tight')
     plt.show()
 
-    return max_dist_idx, max_dist_vl
+    return max_dist_idx, x.loc[max_dist_idx]
 

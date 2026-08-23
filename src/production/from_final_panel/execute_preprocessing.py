@@ -37,6 +37,7 @@ co_idx, co_vl = vlc(cuoff_metrics['variance_loss'])
 fit_post_co = cuoff_metrics.query('variance_loss > @co_vl').copy()
 print(fit_post_co.shape)
 print(fit_post_co.columns)
+print(co_vl)
 
 
 
