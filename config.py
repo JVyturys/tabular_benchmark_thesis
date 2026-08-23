@@ -32,6 +32,9 @@ VIZ_CUTOFF = VIZ / "cutoff_kneedle.png"
 ## SPLIT PARTITIONS
 SPLIT = FINAL_DIR / "split.parquet"
 
+## PREPROCESSING
+PRE_PROS_CONTS = FINAL_DIR / "pre_processing_constants.parquet"
+
 
 
 

@@ -204,5 +204,7 @@ def vl_cut_off(x):
     plt.savefig(con.VIZ_CUTOFF, dpi=600, bbox_inches='tight')
     plt.show()
 
+    
+
     return max_dist_idx, x.loc[max_dist_idx]
 
