@@ -67,11 +67,11 @@ def variance_loss(x):
 
             # calculate variance loss 
             if math.isclose(variance_x_o, 0):
-                print(f"WARINGIN: {column} has a has a degenerate variance, VL set to 1")
-                vl = 1
+                print(f"WARINGIN: {column} has a has a degenerate variance, VL set to 'NaN'")
+                vl = float('nan')
             elif math.isnan(variance_x_o):
-                 print(f"WARINGIN: {column} has a var of NaN, setting VL({column}) == 1")
-                 vl = 1
+                 print(f"WARINGIN: {column}'s variance not defined, setting VL({column}) == 'NaN'")
+                 vl = float('nan')
             else:
                  vl = p - p*(1-p)*((mean_x_o-median_x_o)**2)/(variance_x_o)
 

@@ -24,7 +24,7 @@ fit = fit.query('partition=="fit"')
 assert fit['partition'].unique() == ['fit'], "conatminated fit partition"
 fit_features = fit.drop(columns=['orgpermid', "partition"])
 
-print(vl(fit_features))
+print(vl(fit_features).sort_values(by="variance_loss", ascending=False))
 
 
 
