@@ -16,7 +16,6 @@ from utils import variance_loss as vl
 # load data
 panel = pd.read_parquet(con.PANEL)
 panel = panel.drop(columns=['year', 'esg_combined_score'])
-geo = pd.read_parquet(con.REF_GEOGRAPHY, columns=['lvl3permid'])
 split = pd.read_parquet(con.SPLIT)
 
 # slice fit partition

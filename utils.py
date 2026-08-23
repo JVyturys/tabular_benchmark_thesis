@@ -40,11 +40,14 @@ def variance_loss(x):
                 vl = 1
 
                 # update results
-                variables.append({column})
+                variables.append(column)
                 vl_values.append(vl)
                 p_fractions.append(1)
                 minus_p_fractions.append(0)
                 n_obs.append(0)
+                means.append(float('nan'))
+                medians.append(float('nan'))
+                variances.append(float('nan'))
                 
         
         else:
@@ -64,16 +67,15 @@ def variance_loss(x):
 
             # calculate variance loss 
             if math.isclose(variance_x_o, 0):
-                print(f"WARINGIN: {column} has a has a degenerate variance, stabilization term added")
-                variance_x_o += 1e-4
-                vl = p - p*(1-p)*(median_x_o-median_x_o)/(variance_x_o)
+                print(f"WARINGIN: {column} has a has a degenerate variance, VL set to 1")
+                vl = 1
             elif math.isnan(variance_x_o):
                  print(f"WARINGIN: {column} has a var of NaN, setting VL({column}) == 1")
                  vl = 1
             else:
                  vl = p - p*(1-p)*((mean_x_o-median_x_o)**2)/(variance_x_o)
 
-            variables.append({column})
+            variables.append(column)
             vl_values.append(vl)
             p_fractions.append(p)
             minus_p_fractions.append((1-p))
