@@ -36,6 +36,9 @@ def variance_loss(x):
     # determine sample size
     n = len(x)
 
+    # placeholder for degenerate variance columns
+    deg_var_cols = []
+
     for column in x.columns:
         if x[column].isna().sum() == n:
                 vl = 1
@@ -70,9 +73,11 @@ def variance_loss(x):
             if math.isclose(variance_x_o, 0):
                 print(f"WARINGIN: {column} has a has a degenerate variance, VL set to 'NaN'")
                 vl = float('nan')
+                deg_var_cols.append(column)
             elif math.isnan(variance_x_o):
                  print(f"WARINGIN: {column}'s variance not defined, setting VL({column}) == 'NaN'")
                  vl = float('nan')
+                 deg_var_cols.append(column)
             else:
                  vl = p - p*(1-p)*((mean_x_o-median_x_o)**2)/(variance_x_o)
 
@@ -96,7 +101,7 @@ def variance_loss(x):
          "variance":variances
     })
 
-    return df_vl
+    return df_vl, deg_var_cols
 
 def vl_cut_off(x):
     '''
