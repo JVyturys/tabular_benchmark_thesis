@@ -132,19 +132,11 @@ def vl_cut_off(x):
     distance_to_curve = pd.Series(lin_func-x)
     max_dist_vl = max(distance_to_curve)
 
-    # use vl-distribution referential cut-off fallback rule 
-    if all(distance_to_curve - max_dist_vl <= 0)  == True:
-        print(f"PASS")
-        max_dist_idx = distance_to_curve.argmax() 
-        kneedle_curve_val = x.iloc[max_dist_idx]
-        kneedle_lin_val = lin_func[max_dist_idx]
+    max_dist_idx = distance_to_curve.argmax() 
+    kneedle_curve_val = x.iloc[max_dist_idx]
+    kneedle_lin_val = lin_func[max_dist_idx]
         
-    else:
-        fallback_target = np.sqrt(np.var(x)) + np.mean(x)
-        max_dist_idx = (x - fallback_target).abs().argmin()
-        max_dist_vl = fallback_target
-        kneedle_curve_val = x.iloc[max_dist_idx]
-        kneedle_lin_val = lin_func[max_dist_idx]
+
 
     # plot curves
     plt.style.use('seaborn-v0_8-whitegrid')
