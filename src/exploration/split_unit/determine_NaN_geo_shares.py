@@ -2,7 +2,7 @@
 '''
 src.exploration.split_unit.determine_NaN_geo_shares
 
-input:
+input: panel.parquet, split.parquet, ref_geo_table.parquet
 purpose: 
 output:
 '''
