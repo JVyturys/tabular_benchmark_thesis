@@ -79,7 +79,7 @@ CUTOFF_VARS = ['item4057', 'item3499', 'item18188', 'item4150', 'item1084', 'ite
                                       'item18168', 'item18167', 'item18853', 'item1351', 'item18065', 'item3490',
                                         'item1265', 'item3449']
 
-DEGVAR_VARS = ['item4450', 'item3448', , 'item4452' , 'item4799', 'item3257']
+DEGVAR_VARS = ['item4450', 'item3448', 'item4452' , 'item4799', 'item3257']
 
 
 
