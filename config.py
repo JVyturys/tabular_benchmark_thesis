@@ -28,6 +28,7 @@ VIZ = RESULTS_DIR / "visualization"
 VIZ_WD = VIZ / "wassersteindist.png"
 VIZ_TDIST = VIZ / "target_distr_preg.png" 
 VIZ_CUTOFF = VIZ / "cutoff_kneedle.png"
+VIZ_NAN_SHARE = VIZ / "total_nan_shares_per_region.png"
 
 ## SPLIT PARTITIONS
 SPLIT = FINAL_DIR / "split.parquet"
