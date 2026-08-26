@@ -7,24 +7,24 @@ purpose: determine relation between missingness ratios and respective regions
 
 output: 4x4 plot of feature-nan composition per region
 
-                            n  rate_retained  rate_dropped
+                            n  nan_rate_retained_features  nan_rate_dropped_features
             lvl3permid                                    
-            100089      15117       0.009417      0.593668
-            100223       7406       0.015506      0.607499
-            100334       5344       0.017955      0.578494
-            100276       4170       0.021408      0.660898
-            100024       3830       0.021571      0.664927
-            100219       3288       0.025287      0.657336
-            103384       2648       0.020997      0.639189
-            100278       2472       0.011246      0.575449
-            103401       2009       0.029228      0.698349
-            100279       1799       0.019335      0.583380
-            100277       1067       0.015033      0.587713
-            100090        844       0.032076      0.609153
-            100218        322       0.029391      0.748059
-            100087         34       0.016941      0.652836
-            100332         22       0.016000      0.640828
-            100060          9       0.045333      0.713294
+            100089      15117           0.009417                    0.593668
+            100223       7406           0.015506                    0.607499
+            100334       5344           0.017955                    0.578494
+            100276       4170           0.021408                    0.660898
+            100024       3830           0.021571                    0.664927
+            100219       3288           0.025287                    0.657336
+            103384       2648           0.020997                    0.639189
+            100278       2472           0.011246                    0.575449
+            103401       2009           0.029228                    0.698349
+            100279       1799           0.019335                    0.583380
+            100277       1067           0.015033                    0.587713
+            100090        844           0.032076                    0.609153
+            100218        322           0.029391                    0.748059
+            100087         34           0.016941                    0.652836
+            100332         22           0.016000                    0.640828
+            100060          9           0.045333                    0.713294
 
                         variables_dropped  n_obs
             lvl3permid                          
@@ -53,6 +53,7 @@ import pandas as pd
 import config as con
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
+import numpy as np
 
 # load data
 panel = pd.read_parquet(con.PANEL)
@@ -109,6 +110,8 @@ df_nan_report = pd.DataFrame({
 print(df_nan_report)
 
 # plot
+
+## plot missingness rates
 plt.style.use('seaborn-v0_8-whitegrid')
 
 color_retained = "#1f4e79"  
@@ -177,4 +180,73 @@ fig.legend(
 )
 
 plt.savefig(con.VIZ_NAN_SHARE, dpi=600, bbox_inches='tight')
+plt.show()
+
+
+## plot dropped usable columns
+plt.style.use('seaborn-v0_8-whitegrid')
+
+color_dropped = "#d9534f"  
+color_nobs = "#1f4e79"     
+
+df_plot = usable_dropped.sort_values(by="n_obs", ascending=False)
+
+x_labels = df_plot.index
+x_pos = np.arange(len(x_labels))
+
+fig, ax1 = plt.subplots(figsize=(14, 6))
+
+ax1.bar(
+    x_pos, 
+    df_plot["variables_dropped"], 
+    color=color_dropped, 
+    alpha=0.85, 
+    width=0.6, 
+    label="Dropped Variables (<25% NaN-Share)"
+)
+ax1.set_ylabel("Number of Dropped Variables", color=color_dropped, fontweight="bold", labelpad=10)
+ax1.tick_params(axis="y", labelcolor=color_dropped)
+ax1.set_xticks(x_pos)
+
+formatted_labels = [f"{reg}*" if reg in con.TIER2_REGS else str(reg) for reg in x_labels]
+ax1.set_xticklabels(formatted_labels, rotation=45, ha="right")
+
+ax1.grid(False)
+
+ax2 = ax1.twinx()
+ax2.plot(
+    x_pos, 
+    df_plot["n_obs"], 
+    color=color_nobs, 
+    marker="o", 
+    linewidth=2.5, 
+    markersize=6, 
+    label="Sample Size (n_obs)"
+)
+ax2.set_ylabel("Sample Size (n_obs)", color=color_nobs, fontweight="bold", labelpad=10)
+ax2.tick_params(axis="y", labelcolor=color_nobs)
+
+ax2.grid(True, axis="y", linestyle="--", alpha=0.5)
+
+ax1.spines["top"].set_visible(False)
+ax2.spines["top"].set_visible(False)
+ax1.spines["left"].set_color(color_dropped)
+ax2.spines["right"].set_color(color_nobs)
+
+plt.title("Dropped Variables with NaN Share <25% vs. Sample Size per Region", fontweight="bold", pad=20, fontsize=14)
+
+lines_1, labels_1 = ax1.get_legend_handles_labels()
+lines_2, labels_2 = ax2.get_legend_handles_labels()
+fig.legend(
+    lines_1 + lines_2, 
+    labels_1 + labels_2, 
+    loc="lower center", 
+    bbox_to_anchor=(0.5, 0.98), 
+    ncol=2, 
+    frameon=False,
+    fontsize=11
+)
+
+plt.tight_layout()
+plt.savefig(con.VIZ_USABLE_DROPPED, dpi=600, bbox_inches='tight')
 plt.show()
