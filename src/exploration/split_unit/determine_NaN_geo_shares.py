@@ -5,7 +5,26 @@ src.exploration.split_unit.determine_NaN_geo_shares
 input: panel.parquet, split.parquet, ref_geo_table.parquet, pre_processing_constants.parquet
 purpose: determine relation between missingness ratios and respective regions
 
-output:
+output: 4x4 plot of feature-nan composition per region
+
+                            n  rate_retained  rate_dropped
+        lvl3permid                                    
+        103384      15117       0.009417      0.593668
+        103401       7406       0.015506      0.607499
+        100334       5344       0.017955      0.578494
+        100277       4170       0.021408      0.660898
+        100024       3830       0.021571      0.664927
+        100278       3288       0.025287      0.657336
+        100276       2648       0.020997      0.639189
+        100218       2472       0.011246      0.575449
+        100279       2009       0.029228      0.698349
+        100219       1799       0.019335      0.583380
+        100089       1067       0.015033      0.587713
+        100223        844       0.032076      0.609153
+        100090        322       0.029391      0.748059
+        100332         34       0.016941      0.652836
+        100060         22       0.016000      0.640828
+        100087          9       0.045333      0.713294
 '''
 ##################################################
 import pandas as pd
@@ -33,9 +52,33 @@ fit = fit.merge(geo, on='orgpermid', how='left')
 regions = [*con.TIER1_REGS, *con.TIER2_REGS]
 
 # calculate missingness share for each varible per region
+region_sizes = fit.groupby('lvl3permid').size().sort_values(ascending=False)
 nan_ana = fit.groupby('lvl3permid')[features].apply(lambda x: x.isna().mean()).T
 nan_ana_dro = fit.groupby('lvl3permid')[dropped_features].apply(lambda x: x.isna().mean()).T
 nan_ana_ret = fit.groupby('lvl3permid')[retained_features].apply(lambda x: x.isna().mean()).T
+
+report_regions = []
+avg_retrate = []
+avg_drorate = []
+report_regsize = []
+
+for reg in regions:
+    avg_retrate.append(nan_ana_ret[reg].mean())
+    avg_drorate.append(nan_ana_dro[reg].mean())
+    report_regsize.append(region_sizes[reg])
+
+df_nan_report = pd.DataFrame({
+    "n":report_regsize,
+    "rate_retained":avg_retrate,
+    "rate_dropped":avg_drorate
+}, index=region_sizes.index)
+
+print(df_nan_report.sort_values(by="n", ascending=False))
+
+
+
+
+
 
 
 # plot
@@ -49,7 +92,7 @@ color_default  = "#5cb85c"
 fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(10, 10), constrained_layout=True)
 axes = axes.flatten()
 
-for i, region in enumerate(regions):
+for i, region in enumerate(region_sizes.index):
     if i >= len(axes): 
         break 
         
@@ -68,7 +111,7 @@ for i, region in enumerate(regions):
     ax.barh(range(len(region_data)), region_data.values, color=bar_colors, height=1.0, edgecolor='none')
     
     display_name = f"{region}*" if region in con.TIER2_REGS else str(region)
-    ax.set_title(f'{display_name}', fontweight='bold', pad=8, fontsize=12)
+    ax.set_title(f'{display_name}, n = {region_sizes[region]}', fontweight='bold', pad=8, fontsize=12)
     
     ax.set_xlim(0, 1) 
     
@@ -94,7 +137,7 @@ for j in range(len(regions), len(axes)):
 legend_elements = [
     Patch(facecolor=color_retained, label='Retained Features'),
     Patch(facecolor=color_dropped, label='Dropped Features'),
-    Patch(facecolor=color_degvar, label='Degvar Features')
+    Patch(facecolor=color_degvar, label='Features with Degenerate Variance')
 ]
 
 fig.legend(
