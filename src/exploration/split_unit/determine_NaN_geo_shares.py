@@ -7,25 +7,6 @@ purpose: determine relation between missingness ratios and respective regions
 
 output: 4x4 plot of feature-nan composition per region
 
-                            n  nan_rate_retained_features  nan_rate_dropped_features
-            lvl3permid                                    
-            100089      15117           0.009417                    0.593668
-            100223       7406           0.015506                    0.607499
-            100334       5344           0.017955                    0.578494
-            100276       4170           0.021408                    0.660898
-            100024       3830           0.021571                    0.664927
-            100219       3288           0.025287                    0.657336
-            103384       2648           0.020997                    0.639189
-            100278       2472           0.011246                    0.575449
-            103401       2009           0.029228                    0.698349
-            100279       1799           0.019335                    0.583380
-            100277       1067           0.015033                    0.587713
-            100090        844           0.032076                    0.609153
-            100218        322           0.029391                    0.748059
-            100087         34           0.016941                    0.652836
-            100332         22           0.016000                    0.640828
-            100060          9           0.045333                    0.713294
-
                         variables_dropped  n_obs
             lvl3permid                          
             100089                     22  15117
@@ -90,24 +71,7 @@ usable_dropped = pd.DataFrame({
 print(usable_dropped)
     
 
-report_regions = []
-avg_retrate = []
-avg_drorate = []
-report_regsize = []
 
-for reg in region_sizes.index:
-    avg_retrate.append(nan_ana_ret[reg].mean())
-    avg_drorate.append(nan_ana_dro[reg].mean())
-    report_regsize.append(region_sizes[reg])
-
-
-df_nan_report = pd.DataFrame({
-    "n":report_regsize,
-    "nan_rate_retained_features":avg_retrate,
-    "nan_rate_dropped_features":avg_drorate
-}, index=region_sizes.index)
-
-print(df_nan_report)
 
 # plot
 
