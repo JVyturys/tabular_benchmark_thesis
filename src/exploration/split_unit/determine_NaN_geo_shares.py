@@ -67,19 +67,17 @@ for reg in regions:
     avg_drorate.append(nan_ana_dro[reg].mean())
     report_regsize.append(region_sizes[reg])
 
+
 df_nan_report = pd.DataFrame({
-    "n":report_regsize,
     "rate_retained":avg_retrate,
     "rate_dropped":avg_drorate
 }, index=region_sizes.index)
 
-print(df_nan_report.sort_values(by="n", ascending=False))
+df_region_sizes = pd.DataFrame(region_sizes, columns=['n'])
 
+df_nan_report = df_nan_report.merge(df_region_sizes, on='lvl3permid', how='left')
 
-
-
-
-
+print(df_nan_report)
 
 # plot
 plt.style.use('seaborn-v0_8-whitegrid')
