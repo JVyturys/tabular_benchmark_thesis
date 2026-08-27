@@ -12,12 +12,13 @@ class Gatekeeper:
     '''
 
     def __init__(self):
-        # load data and parameters
+        # initialize stage parameters
         self._stage = None 
         self._previous_stage= None         
         self.model = None
+
+        # load data and parameters
         self.panel = pd.read_parquet(con.PANEL)
-        self.panel.drop(columns=['year'])
         self.geo_id = pd.read_parquet(con.REF_GEOGRAPHY, columns=(['orgpermid', 'lvl3permid']))
         self.split = pd.read_parquet(con.SPLIT)
         self.pre_processing_constants = con.PRE_PROS_CONTS
@@ -107,7 +108,7 @@ class Gatekeeper:
         '''
         scale and impute dataset
         '''
-        preprocessed_data = data[['orgpermid', 'lvl3permid', 'partition']]
+        preprocessed_data = data[['orgpermid', 'lvl3permid', 'partition', 'esg_combined_score']]
         for feature in self.pre_processing_constants['varible']:
             preprocessed_feature = self.merged_data[[feature, 'orgpermid']]
             feature_mean = self.pre_processing_constants.loc[self.pre_processing_constants['variable']==feature]['mean'].values[0]
