@@ -26,8 +26,6 @@ output: 4x4 plot of feature-nan composition per region
             100332                     22     22
             100060                     25      9
 
-
-
 '''
 ##################################################
 import pandas as pd
