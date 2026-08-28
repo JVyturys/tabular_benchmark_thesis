@@ -65,13 +65,13 @@ class Gatekeeper():
     def _slice_data(self, partitions, stage):
         stage_data = self._preprocessed_data[self._preprocessed_data['partition'].isin(partitions)]
         if stage in {None,1,2,3}:
-            stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
             geo_ID = None
+            stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
         elif stage in {4}:
-            stage_data = stage_data.drop(columns=['orgpermid', 'partition'])
             geo_ID = stage_data['lvl3permid']
+            stage_data = stage_data.drop(columns=['orgpermid', 'partition', 'lvl3permid'])
         stage_X = stage_data.drop(columns=['esg_combined_score'])
-        stage_y = stage_data[['esg_combined_score', 'lvl3permid']]
+        stage_y = stage_data[['esg_combined_score']]
         return stage_X, stage_y, geo_ID
 
 ### define methods ---------------------------------------------------------
