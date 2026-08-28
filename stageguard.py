@@ -162,7 +162,7 @@ class Gatekeeper():
         self._stage = 4
 
         # slice data
-        X,y,geo_ID = self._slice_data({'4'}, self._stage)
+        X,y,geo_ID = self._slice_data({'test'}, self._stage)
         print(f"stage 4 data provided, X - {X.shape}, y - {y.shape}, geo-ID - {geo_ID.shape}")
         return X, y, geo_ID
 ### ---------------------------------------------------------
