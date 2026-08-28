@@ -17,7 +17,6 @@ class Gatekeeper():
         # initialize stage parameters
         self.model = model
         self._stage = None   
-        self._stage_two = None
 
         assert self.model in {'ICL', 'nICL'}, f"expected model classes: ICL or nICL, received {self.model}"
 
@@ -84,9 +83,11 @@ class Gatekeeper():
         # slice data
         stage_data = self._preprocessed_data.query('partition=="fit"')
         stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
+        stage_X = stage_data.drop(columns=['esg_combined_score'])
+        stage_y = stage_data[['esg_combined_score']]
         self._stage = 1
         print(f"stage 1 data provided - (n,X+y)= {stage_data.shape}")
-        return stage_data
+        return stage_X, stage_y
 
 ### ---------------------------------------------------------
 
@@ -99,7 +100,6 @@ class Gatekeeper():
             - y (n,1), native in [0,1], NaN-free (by pull design)
         Conditions: previous_stage == 1, model class == 'nICL' 
         '''
-        self._stage_two = True
 
         # check conditions
         self._require({1})
@@ -109,8 +109,10 @@ class Gatekeeper():
         stage_data = self._preprocessed_data.query('partition=="val"')
         stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
         self._stage = 2
+        stage_X = stage_data.drop(columns=['esg_combined_score'])
+        stage_y = stage_data[['esg_combined_score']]
         print(f"stage 2 data provided - (n,X+y)= {stage_data.shape}")
-        return stage_data
+        return stage_X, stage_y
 
 ### ---------------------------------------------------------
 
@@ -128,14 +130,17 @@ class Gatekeeper():
         if self.model== 'nICL':
             self._require({2})
         elif self.model=='ICL':
-            self._require(None)
+            self._require({None})
 
         # slice data
         stage_data = self._preprocessed_data.query('partition=="val" | partition=="fit"')
         stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
         self._stage = 3
+        stage_X = stage_data.drop(columns=['esg_combined_score'])
+        stage_y = stage_data[['esg_combined_score']]
         print(f"stage 3 data provided - (n,X+y)= {stage_data.shape}")
-        return stage_data
+        return stage_X, stage_y
+
 
 ### ---------------------------------------------------------
 
@@ -148,15 +153,18 @@ class Gatekeeper():
             - y (n,1), native in [0,1], NaN-free (by pull design)
         Conditions: previous_stage == 3 
         '''
-        # check conditions
+        # check conditions (no class condition required)
         self._require({3})
 
         # slice data
         stage_data = self._preprocessed_data.query('partition=="test"')
         stage_data = stage_data.drop(columns=['orgpermid', 'partition'])
         self._stage = 4
-        print(f"stage 4 data provided - (n,X+y+geo_id)= {stage_data.shape}")
-        return stage_data
+        stage_X = stage_data.drop(columns=['esg_combined_score'])
+        stage_y = stage_data[[['esg_combined_score', 'lvl3permid']]]
+        print(f"stage 4 data provided - (n,X+y)= {stage_data.shape}")
+        return stage_X, stage_y
+
 
 ### ---------------------------------------------------------
 
