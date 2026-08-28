@@ -30,6 +30,16 @@ class Gatekeeper():
         self.merged_data = self.panel.merge(self.geo_id, on='orgpermid', how='left')
         self.merged_data = self.merged_data.merge(self.split, on="orgpermid", how='left')
 
+        print(f"excluding observations from tier 3 regions")
+        l_before = len(self.merged_data)
+        self.regions = [*con.TIER1_REGS, *con.TIER2_REGS]
+        self.merged_data = self.merged_data.loc[self.merged_data['lvl3permid'].isin(self.regions)]
+        l_after = len(self.merged_data)
+        print(f"excluded observations: {l_before-l_after}")
+
+        print(f"{self.merged_data['partition'].isna().sum()}")
+        print(self.merged_data.loc[self.merged_data['partition'].isna(), 'lvl3permid'])
+
         # perform preprocessing
         self._preprocessed_data = self._preprocessing()
 
