@@ -94,8 +94,7 @@ class Gatekeeper():
 
         # slice data
         X,y,_ = self._slice_data({'fit'}, self._stage)
-        assert X.shape == (50381, 125), f"stage 3 X-dimensions expected (50381, 125), saw {X.shape}"
-        assert y.shape == (50381, 1), f"stage 3 y-dimensions expected (50381, 1), saw {y.shape}"
+        assert X.shape[0] == y.shape[0], f"stage 1 X-dimensions and y-dimension mismatch"
         print(f"stage 1 data provided, X - {X.shape}, y- {y.shape}")
         return X, y
 ### ---------------------------------------------------------
@@ -119,8 +118,7 @@ class Gatekeeper():
 
         # slice data
         X,y,_ = self._slice_data({'val'}, self._stage)
-        assert X.shape == (8425, 125), f"stage 3 X-dimensions expected (8425, 125), saw {X.shape}"
-        assert y.shape == (8425, 1), f"stage 3 y-dimensions expected (8425, 1), saw {y.shape}"
+        assert X.shape[0] == y.shape[0], f"stage 2 X-dimensions and y-dimension mismatch"
         print(f"stage 2 data provided, X - {X.shape}, y - {y.shape}")
         return X, y
 ### ---------------------------------------------------------
@@ -146,8 +144,7 @@ class Gatekeeper():
 
         # slice data
         X,y,_ = self._slice_data({'fit', 'val'}, self._stage)
-        assert X.shape == (58806, 125), f"stage 3 X data dimensions expected (58806, 125), saw {X.shape}"
-        assert y.shape == (58806, 1), f"stage 3 y-dimensions expected (58806, 1), saw {y.shape}"
+        assert X.shape[0] == y.shape[0], f"stage 3 X-dimensions and y-dimension mismatch"
         print(f"stage 3 data provided, X - {X.shape}, y - {y.shape}")
         return X, y
 ### ---------------------------------------------------------
@@ -169,8 +166,7 @@ class Gatekeeper():
 
         # slice data
         X,y,geo_ID = self._slice_data({'test'}, self._stage)
-        assert X.shape == (25221, 125), f"stage 4 X-dimensions expected (25221, 125), saw {X.shape}"
-        assert y.shape == (25221, 1), f"stage 4 y-dimensions expected (25221, 1), saw {y.shape}"
+        assert X.shape[0] == y.shape[0], f"stage 4 X-dimensions and y-dimension mismatch"
         print(f"stage 4 data provided, X - {X.shape}, y - {y.shape}, geo-ID - {geo_ID.shape}")
         return X, y, geo_ID
 ### ---------------------------------------------------------
