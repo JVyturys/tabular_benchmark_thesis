@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import config as con
 
-
 class Gatekeeper:
     '''
     Provide designated, preprocessed data slices to distinct model phases.
@@ -13,8 +12,7 @@ class Gatekeeper:
 
     def __init__(self):
         # initialize stage parameters
-        self._stage = None 
-        self._first_stage_ran = None         
+        self._stage = None        
         self.model = None
 
         # load data and parameters
@@ -77,7 +75,8 @@ class Gatekeeper:
                         - y (n,1), native in [0,1], NaN-free (by pull design)
                         - geographic region identifier (lvl3permid)
         '''
-        self.model = model
+        self._check_model(self.model)
+
         if self.model == 'nICL':
             if self._stage == 1:
                 return self.stage_one_preprocessing(self.preprocessed_data)
@@ -90,6 +89,25 @@ class Gatekeeper:
 
             elif self._stage == 4:
                  return self.stage_four_preprocessing(self.preprocessed_data)
+        
+        elif self.model == 'ICL':
+            if self._stage == 1:
+                raise RuntimeError(f"needs stage {None}, saw {self._stage}")
+            
+            elif self._stage == 2:
+                raise RuntimeError(f"needs stage {None}, saw {self._stage}")
+            
+            elif self._stage == 3:
+                raise RuntimeError(f"needs stage {None}, saw {self._stage}")
+
+            elif self._stage == None:
+                self._stage = 3
+                return self.stage_three_preprocessing(self.preprocessed_data)
+
+            elif self._stage == 4:
+                return self.stage_four_preprocessing(self.preprocessed_data)
+
+        
 
     def stage_one_data(self):
         '''
@@ -109,7 +127,6 @@ class Gatekeeper:
         self.stage = 1
         print(f"stage 1 data provided - (n,X+y)= {len(stage_data)}")
         return stage_data
-
 
     def stage_two_data(self):
         '''
