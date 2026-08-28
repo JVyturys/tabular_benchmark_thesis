@@ -63,16 +63,15 @@ class Gatekeeper():
             raise RuntimeError(f"needs model class {expected}, saw {self.model}")
 
     def _slice_data(self, partitions, stage):
-        stage_data = self._preprocessed_data.query('partition.isin(@partitions)')
+        stage_data = self._preprocessed_data[self._preprocessed_data['partition'].isin(partitions)]
         if stage in {None,1,2,3}:
             stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
             geo_ID = None
         elif stage in {4}:
             stage_data = stage_data.drop(columns=['orgpermid', 'partition'])
             geo_ID = stage_data['lvl3permid']
-            return stage_X, stage_y, geo_ID
         stage_X = stage_data.drop(columns=['esg_combined_score'])
-        stage_y = stage_data[['esg_combined_score']]
+        stage_y = stage_data[['esg_combined_score', 'lvl3permid']]
         return stage_X, stage_y, geo_ID
 
 ### define methods ---------------------------------------------------------
@@ -95,7 +94,7 @@ class Gatekeeper():
         self._stage = 1
 
         # slice data
-        X,y,geo_ID = self._slice_data({'fit'}, self._stage)
+        X,y,_ = self._slice_data({'fit'}, self._stage)
         print(f"stage 1 data provided, X - {X.shape}, y- {y.shape}")
         return X, y
 ### ---------------------------------------------------------
@@ -118,7 +117,7 @@ class Gatekeeper():
         self._stage = 2
 
         # slice data
-        X,y,geo_ID = self._slice_data({'val'}, self._stage)
+        X,y,_ = self._slice_data({'val'}, self._stage)
         print(f"stage 2 data provided, X - {X.shape}, y - {y.shape}")
         return X, y
 ### ---------------------------------------------------------
@@ -143,8 +142,8 @@ class Gatekeeper():
         self._stage = 3
 
         # slice data
-        X,y,geo_ID = self._slice_data({'fit', 'val'}, self._stage)
-        print(f"stage 2 data provided, X - {X.shape}, y - {y.shape}")
+        X,y,_ = self._slice_data({'fit', 'val'}, self._stage)
+        print(f"stage 3 data provided, X - {X.shape}, y - {y.shape}")
         return X, y
 ### ---------------------------------------------------------
 
@@ -164,7 +163,7 @@ class Gatekeeper():
         self._stage = 4
 
         # slice data
-        X,y,geo_ID = self._slice_data({'fit', 'val'}, self._stage)
+        X,y,geo_ID = self._slice_data({'4'}, self._stage)
         print(f"stage 4 data provided, X - {X.shape}, y - {y.shape}")
         return X, y, geo_ID
 ### ---------------------------------------------------------
