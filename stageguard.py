@@ -61,8 +61,19 @@ class Gatekeeper():
     def _require_class(self, expected):
         if self.model not in expected:
             raise RuntimeError(f"needs model class {expected}, saw {self.model}")
-    
 
+    def _slice_data(self, partitions, stage):
+        stage_data = self._preprocessed_data.query('partition.isin(@partitions)')
+        if stage in {None,1,2,3}:
+            stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
+            geo_ID = None
+        elif stage in {4}:
+            stage_data = stage_data.drop(columns=['orgpermid', 'partition'])
+            geo_ID = stage_data['lvl3permid']
+            return stage_X, stage_y, geo_ID
+        stage_X = stage_data.drop(columns=['esg_combined_score'])
+        stage_y = stage_data[['esg_combined_score']]
+        return stage_X, stage_y, geo_ID
 
 ### define methods ---------------------------------------------------------
 
@@ -80,15 +91,13 @@ class Gatekeeper():
         self._require({None, 2})
         self._require_class({'nICL'})
 
-        # slice data
-        stage_data = self._preprocessed_data.query('partition=="fit"')
-        stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
-        stage_X = stage_data.drop(columns=['esg_combined_score'])
-        stage_y = stage_data[['esg_combined_score']]
+        # set stage parameter
         self._stage = 1
-        print(f"stage 1 data provided - (n,X+y)= {stage_data.shape}")
-        return stage_X, stage_y
 
+        # slice data
+        X,y,geo_ID = self._slice_data({'fit'}, self._stage)
+        print(f"stage 1 data provided, X - {X.shape}, y- {y.shape}")
+        return X, y
 ### ---------------------------------------------------------
 
     def stage_two_data(self):
@@ -105,15 +114,13 @@ class Gatekeeper():
         self._require({1})
         self._require_class({'nICL'})
 
-        # slice data
-        stage_data = self._preprocessed_data.query('partition=="val"')
-        stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
+        # set stage parameter
         self._stage = 2
-        stage_X = stage_data.drop(columns=['esg_combined_score'])
-        stage_y = stage_data[['esg_combined_score']]
-        print(f"stage 2 data provided - (n,X+y)= {stage_data.shape}")
-        return stage_X, stage_y
 
+        # slice data
+        X,y,geo_ID = self._slice_data({'val'}, self._stage)
+        print(f"stage 2 data provided, X - {X.shape}, y - {y.shape}")
+        return X, y
 ### ---------------------------------------------------------
 
     def stage_three_data(self):
@@ -132,16 +139,13 @@ class Gatekeeper():
         elif self.model=='ICL':
             self._require({None})
 
-        # slice data
-        stage_data = self._preprocessed_data.query('partition=="val" | partition=="fit"')
-        stage_data = stage_data.drop(columns=['orgpermid', 'lvl3permid', 'partition'])
+        # set stage parameter
         self._stage = 3
-        stage_X = stage_data.drop(columns=['esg_combined_score'])
-        stage_y = stage_data[['esg_combined_score']]
-        print(f"stage 3 data provided - (n,X+y)= {stage_data.shape}")
-        return stage_X, stage_y
 
-
+        # slice data
+        X,y,geo_ID = self._slice_data({'fit', 'val'}, self._stage)
+        print(f"stage 2 data provided, X - {X.shape}, y - {y.shape}")
+        return X, y
 ### ---------------------------------------------------------
 
     def stage_four_data(self):
@@ -156,16 +160,13 @@ class Gatekeeper():
         # check conditions (no class condition required)
         self._require({3})
 
-        # slice data
-        stage_data = self._preprocessed_data.query('partition=="test"')
-        stage_data = stage_data.drop(columns=['orgpermid', 'partition'])
+        # set stage parameter
         self._stage = 4
-        stage_X = stage_data.drop(columns=['esg_combined_score'])
-        stage_y = stage_data[[['esg_combined_score', 'lvl3permid']]]
-        print(f"stage 4 data provided - (n,X+y)= {stage_data.shape}")
-        return stage_X, stage_y
 
-
+        # slice data
+        X,y,geo_ID = self._slice_data({'fit', 'val'}, self._stage)
+        print(f"stage 4 data provided, X - {X.shape}, y - {y.shape}")
+        return X, y, geo_ID
 ### ---------------------------------------------------------
 
 
