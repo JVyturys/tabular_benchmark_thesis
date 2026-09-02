@@ -224,7 +224,6 @@ def per_region_metrics(y_true: pd.Series, y_pred: pd.Series, geoID: pd.Series)->
     output: dataframe of per region rmse, r^2, SSR and the sum over all regional SSRs
     '''
 
-
     # assert index allignment
     assert y_true.index.equals(y_pred.index), "index misallignment of target&predition"
     assert y_true.index.equals(geoID.index), "index misallignment of target&geoID"
@@ -248,7 +247,7 @@ def per_region_metrics(y_true: pd.Series, y_pred: pd.Series, geoID: pd.Series)->
         data = merged_data.loc[merged_data['lvl3permid']==region]
         y_pred_r = data['y_pred']
         y_target_r = data['y_true'] 
-        ssr_r = np.sum((y_pred_r - y_target_r)**2) # sum of squared errors in region r
+        ssr_r = np.sum((y_pred_r - y_target_r)**2) 
         rmse_r = np.sqrt(ssr_r/len(y_target_r))
         nominators.append(ssr_r)
         results.update({region:[rmse_r,ssr_r]})
@@ -260,20 +259,56 @@ def per_region_metrics(y_true: pd.Series, y_pred: pd.Series, geoID: pd.Series)->
     # calculate R²
     df_metrics['r_sq'] = 1 - df_metrics['ssr_r']/denominator
 
-    return df_metrics, global_sum_residuals
+    return (df_metrics, global_sum_residuals)
+
     
+def pooled_metrics(y_true: pd.Series, y_pred: pd.Series) -> tuple[float, float, float]: 
 
-def pooled_metrics(y_true: pd.Series, y_pred: pd.Series) -> tuple[tuple[float, float], float]: 
-    pass   
+    # assert index alligment 
+    assert y_true.index.equals(y_pred.index), "index misallignment of target&predition"
 
-def macro_average_metrics(per_reg_metrics: pd.DataFrame)-> tuple[float, float]:
-    pass
+    # calculate global denominator
+    denominator = len(y_true)*np.var(y_true, ddof=0)
 
-def assert_ss_res_decomposition(ss_res_regional: float, ss_res_global: float) -> bool:
-    pass
+    # nominator and RMSE    
+    ssr = np.sum((y_pred - y_true)**2) # sum of squared errors in region r
 
-def report_metrics(per_region_metrics: pd.DataFrame,
-               pooled_metrics: tuple[float, float],
+    rmse = np.sqrt(ssr/len(y_true))
+    r_sqrd = 1- ssr/denominator
+
+    return (rmse, r_sqrd, ssr)
+
+def macro_average_metrics(per_reg_metrics: tuple[pd.DataFrame, float])-> tuple[float, float]:
+    df_metrics = per_reg_metrics[0]
+    average_rmse   = df_metrics['rmse_r'].mean()
+    average_r_sqrd = df_metrics['r_sq'].mean()
+
+    return (average_rmse, average_r_sqrd)
+
+def assert_ss_res_decomposition(per_region_metrics: tuple[pd.DataFrame, float], pooled_metrics: tuple[float, float, float]) -> None:
+    assert np.isclose(per_region_metrics[1], pooled_metrics[2]), "SSE global vs summed SSE per region do not match"
+
+def report_metrics(per_region_metrics: tuple[pd.DataFrame, float],
+               pooled_metrics: tuple[float, float, float],
                macro_average_metrics: tuple[float, float],
-               tier1_regions: list) -> pd.DataFrame:
-    pass
+               tier1_regions: list) -> tuple[pd.DataFrame, tuple[float, float], float, tuple[float, float], float]:
+    df_region_report=per_region_metrics[0].copy()
+    df_region_report = df_region_report.loc[tier1_regions]
+    df_region_report['rmse_100'] = df_region_report['rmse_r']*100
+    pooled_metrics_tupel = (pooled_metrics[0],pooled_metrics[1]) 
+    pooled_rmse_100 =pooled_metrics_tupel[0]*100 
+    macro_average_metrics_100 = macro_average_metrics[0]*100
+
+
+    print(f'regional performance metrics:')
+    print(f'{df_region_report}\n')
+    print(f'pooled performance metrics:')
+    print(f'{pooled_metrics_tupel}\n')
+    print(f'pooled rmse*100:')
+    print(f'{pooled_rmse_100}\n')
+    print(f'average performance (equal region weights):')
+    print(f'{macro_average_metrics}\n')
+    print(f'average rmse (equal region weights)*100 :')
+    print(f'{macro_average_metrics_100}\n')
+    
+    return df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100
