@@ -80,7 +80,7 @@ class Gatekeeper():
             geo_ID = stage_data['lvl3permid']
         stage_data = stage_data.drop(columns=['orgpermid', 'partition', 'lvl3permid'])
         stage_X = stage_data.drop(columns=['esg_combined_score'])
-        stage_y = stage_data[['esg_combined_score']]
+        stage_y = stage_data['esg_combined_score']
         return stage_X, stage_y, geo_ID
 
 ### define methods ---------------------------------------------------------

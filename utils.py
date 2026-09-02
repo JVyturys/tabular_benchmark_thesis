@@ -9,6 +9,9 @@ import config as con
 import math
 import matplotlib.pyplot as plt
 
+
+### feature cut-off helpers ---------------------------------------------------------
+
 def variance_loss(x):
     '''determine the changes in variance (VL) for all variables of a dataset 
         that occur due to the imputation of their columns with the respective median.
@@ -209,7 +212,68 @@ def vl_cut_off(x):
     plt.savefig(con.VIZ_CUTOFF, dpi=600, bbox_inches='tight')
     plt.show()
 
-    
-
     return max_dist_idx, x.loc[max_dist_idx]
 
+### reporting metrics helpers ---------------------------------------------------------
+
+def per_region_metrics(y_true: pd.Series, y_pred: pd.Series, geoID: pd.Series)-> tuple[pd.DataFrame, float]: 
+    '''Calculate the per region RMSE and R².
+    input: pd.Series: pr y, 
+        pd.Series: target y,
+        pd.Series: pd.Series: geoID (lvl3permid indicators) 
+    output: dataframe of per region rmse, r^2, SSR and the sum over all regional SSRs
+    '''
+
+
+    # assert index allignment
+    assert y_true.index.equals(y_pred.index), "index misallignment of target&predition"
+    assert y_true.index.equals(geoID.index), "index misallignment of target&geoID"
+        
+    # calculate global denominator
+    denominator = len(y_true)*np.var(y_true, ddof=0)
+
+    # per region nominator and RMSE    
+    ## cut regional slices
+    ### merge target and pred with geoIDs 
+    merged_data = pd.concat([y_true, y_pred, geoID], axis=1)
+    merged_data.columns = ["y_true", "y_pred", "lvl3permid"]
+    regions = merged_data['lvl3permid'].unique().tolist()
+
+    assert set(regions) == set([*con.TIER1_REGS, *con.TIER2_REGS]), f"expected regions: {[*con.TIER1_REGS, *con.TIER2_REGS]} , saw {regions}"
+    
+    ### iterate over regions
+    results = {}
+    nominators = []
+    for region in regions:
+        data = merged_data.loc[merged_data['lvl3permid']==region]
+        y_pred_r = data['y_pred']
+        y_target_r = data['y_true'] 
+        ssr_r = np.sum((y_pred_r - y_target_r)**2) # sum of squared errors in region r
+        rmse_r = np.sqrt(ssr_r/len(y_target_r))
+        nominators.append(ssr_r)
+        results.update({region:[rmse_r,ssr_r]})
+
+    global_sum_residuals = np.sum(nominators)
+    df_metrics = pd.DataFrame.from_dict(results, orient='index', columns=['rmse_r', 'ssr_r'])
+    df_metrics.index.name = 'lvl3permid'
+
+    # calculate R²
+    df_metrics['r_sq'] = 1 - df_metrics['ssr_r']/denominator
+
+    return df_metrics, global_sum_residuals
+    
+
+def pooled_metrics(y_true: pd.Series, y_pred: pd.Series) -> tuple[tuple[float, float], float]: 
+    pass   
+
+def macro_average_metrics(per_reg_metrics: pd.DataFrame)-> tuple[float, float]:
+    pass
+
+def assert_ss_res_decomposition(ss_res_regional: float, ss_res_global: float) -> bool:
+    pass
+
+def report_metrics(per_region_metrics: pd.DataFrame,
+               pooled_metrics: tuple[float, float],
+               macro_average_metrics: tuple[float, float],
+               tier1_regions: list) -> pd.DataFrame:
+    pass
