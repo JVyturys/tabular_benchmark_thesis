@@ -9,7 +9,6 @@ import config as con
 import math
 import matplotlib.pyplot as plt
 
-
 ### feature cut-off helpers ---------------------------------------------------------
 
 def variance_loss(x):
