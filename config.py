@@ -25,7 +25,7 @@ REF_PARENT_ENT_TYPE = FINAL_DIR / "ref_parent_ent_type.parquet"
 ## RESULTS
 RESULTS_DIR = PROJECT_ROOT / "results"
 PRED_DIR = RESULTS_DIR / "predictions"
-PRED_DIR_MAN = PRED_DIR / "result_logs"
+PRED_DIR_MAN = PROJECT_ROOT / "model_manifest"
 VIZ = RESULTS_DIR / "visualization"
 VIZ_WD = VIZ / "wassersteindist.png"
 VIZ_TDIST = VIZ / "target_distr_preg.png" 
