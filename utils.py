@@ -216,90 +216,96 @@ def vl_cut_off(x):
 
 ### reporting metrics helpers ---------------------------------------------------------
 
-def per_region_metrics(y_true: pd.Series, y_pred: pd.Series, geoID: pd.Series)-> tuple[pd.DataFrame, float]: 
+def per_region_metrics(y_true: pd.Series, *, y_pred: pd.Series, geoID: pd.Series) -> tuple[pd.DataFrame, float]:
     '''Calculate the per region RMSE and R².
-    input: pd.Series: pr y, 
+    input: pd.Series: pr y,
         pd.Series: target y,
-        pd.Series: pd.Series: geoID (lvl3permid indicators) 
+        pd.Series: pd.Series: geoID (lvl3permid indicators)
     output: dataframe of per region rmse, r^2, SSR and the sum over all regional SSRs
     '''
-
     # assert index allignment
     assert y_true.index.equals(y_pred.index), "index misallignment of target&predition"
     assert y_true.index.equals(geoID.index), "index misallignment of target&geoID"
-        
-    # calculate global denominator
-    denominator = len(y_true)*np.var(y_true, ddof=0)
+    assert y_true.notna().all() and y_pred.notna().all(), "NaN in target or prediction"
 
-    # per region nominator and RMSE    
+    # calculate global denominator
+    denominator = len(y_true) * np.var(y_true, ddof=0)
+    # per region nominator and RMSE
     ## cut regional slices
-    ### merge target and pred with geoIDs 
+    ### merge target and pred with geoIDs
     merged_data = pd.concat([y_true, y_pred, geoID], axis=1)
     merged_data.columns = ["y_true", "y_pred", "lvl3permid"]
     regions = merged_data['lvl3permid'].unique().tolist()
-
     assert set(regions) == set([*con.TIER1_REGS, *con.TIER2_REGS]), f"expected regions: {[*con.TIER1_REGS, *con.TIER2_REGS]} , saw {regions}"
-    
+
     ### iterate over regions
     results = {}
     nominators = []
     for region in regions:
-        data = merged_data.loc[merged_data['lvl3permid']==region]
+        data = merged_data.loc[merged_data['lvl3permid'] == region]
         y_pred_r = data['y_pred']
-        y_target_r = data['y_true'] 
-        ssr_r = np.sum((y_pred_r - y_target_r)**2) 
-        rmse_r = np.sqrt(ssr_r/len(y_target_r))
+        y_target_r = data['y_true']
+        n_r = len(y_target_r)
+        ssr_r = np.sum((y_pred_r - y_target_r)**2)
+        rmse_r = np.sqrt(ssr_r / n_r)
+        # region specific denominator
+        denominator_r = n_r * np.var(y_target_r, ddof=0)
         nominators.append(ssr_r)
-        results.update({region:[rmse_r,ssr_r]})
-
+        results.update({region: [rmse_r, ssr_r, n_r, denominator_r]})
     global_sum_residuals = np.sum(nominators)
-    df_metrics = pd.DataFrame.from_dict(results, orient='index', columns=['rmse_r', 'ssr_r'])
+    df_metrics = pd.DataFrame.from_dict(results, orient='index', columns=['rmse_r', 'ssr_r', 'n_r', 'denominator_r'])
     df_metrics.index.name = 'lvl3permid'
-
-    # calculate R²
-    df_metrics['r_sq'] = 1 - df_metrics['ssr_r']/denominator
-
+    # calculate R² against the shared global scale, per observation
+    df_metrics['r_sq'] = 1 - (df_metrics['ssr_r'] / df_metrics['n_r']) / (denominator / len(y_true))
+    # calculate R² against the region own mean
+    df_metrics['r_sq_reg'] = 1 - df_metrics['ssr_r'] / df_metrics['denominator_r']
     return (df_metrics, global_sum_residuals)
 
-    
-def pooled_metrics(y_true: pd.Series, y_pred: pd.Series) -> tuple[float, float, float]: 
 
-    # assert index alligment 
+def pooled_metrics(y_true: pd.Series, *, y_pred: pd.Series) -> tuple[float, float, float]:
+    # assert index alligment
     assert y_true.index.equals(y_pred.index), "index misallignment of target&predition"
-
+    assert y_true.notna().all() and y_pred.notna().all(), "NaN in target or prediction"
     # calculate global denominator
-    denominator = len(y_true)*np.var(y_true, ddof=0)
-
-    # nominator and RMSE    
-    ssr = np.sum((y_pred - y_true)**2) # sum of squared errors in region r
-
-    rmse = np.sqrt(ssr/len(y_true))
-    r_sqrd = 1- ssr/denominator
-
+    denominator = len(y_true) * np.var(y_true, ddof=0)
+    # nominator and RMSE
+    ssr = np.sum((y_pred - y_true)**2)  # sum of squared errors in region r
+    rmse = np.sqrt(ssr / len(y_true))
+    r_sqrd = 1 - ssr / denominator
     return (rmse, r_sqrd, ssr)
 
-def macro_average_metrics(per_reg_metrics: tuple[pd.DataFrame, float])-> tuple[float, float]:
-    df_metrics = per_reg_metrics[0]
-    average_rmse   = df_metrics['rmse_r'].mean()
-    average_r_sqrd = df_metrics['r_sq'].mean()
 
-    return (average_rmse, average_r_sqrd)
+def macro_average_metrics(per_reg_metrics: tuple[pd.DataFrame, float]) -> tuple[float, float, float, float]:
+    df_metrics = per_reg_metrics[0]
+    average_rmse = df_metrics['rmse_r'].mean()
+    average_r_sqrd = df_metrics['r_sq'].mean()
+    average_r_sqrd_reg = df_metrics['r_sq_reg'].mean()
+    # quadratic mean: comparable to the pooled rmse, free of the sqrt averaging bias
+    average_rmse_q = np.sqrt((df_metrics['rmse_r']**2).mean())
+    return (average_rmse, average_r_sqrd, average_r_sqrd_reg, average_rmse_q)
+
 
 def assert_ss_res_decomposition(per_region_metrics: tuple[pd.DataFrame, float], pooled_metrics: tuple[float, float, float]) -> None:
-    assert np.isclose(per_region_metrics[1], pooled_metrics[2]), "SSE global vs summed SSE per region do not match"
+    # same non-negative sum, only the accumulation order differs (worst observed 3e-16);
+    # the np.isclose default rtol=1e-5 would mask a genuine partition error
+    assert np.isclose(per_region_metrics[1], pooled_metrics[2], rtol=1e-9, atol=1e-12), "SSE global vs summed SSE per region do not match"
+
 
 def report_metrics(per_region_metrics: tuple[pd.DataFrame, float],
-               pooled_metrics: tuple[float, float, float],
-               macro_average_metrics: tuple[float, float],
-               tier1_regions: list) -> tuple[pd.DataFrame, tuple[float, float], float, tuple[float, float], float]:
-    df_region_report=per_region_metrics[0].copy()
+                   pooled_metrics: tuple[float, float, float],
+                   macro_average_metrics: tuple[float, float, float, float],
+                   tier1_regions: list) -> tuple[pd.DataFrame, tuple[float, float], float, tuple[float, float, float, float], float, float, float, float]:
+    df_region_report = per_region_metrics[0].copy()
     df_region_report = df_region_report.loc[tier1_regions]
-    df_region_report['rmse_100'] = df_region_report['rmse_r']*100
-    pooled_metrics_tupel = (pooled_metrics[0],pooled_metrics[1]) 
-    pooled_rmse_100 =pooled_metrics_tupel[0]*100 
-    macro_average_metrics_100 = macro_average_metrics[0]*100
-
-
+    df_region_report['rmse_100'] = df_region_report['rmse_r'] * 100
+    pooled_metrics_tupel = (pooled_metrics[0], pooled_metrics[1])
+    pooled_rmse_100 = pooled_metrics_tupel[0] * 100
+    macro_average_metrics_100 = macro_average_metrics[0] * 100
+    macro_average_metrics_q_100 = macro_average_metrics[3] * 100
+    # equal region weights vs size weights: positive -> large regions perform worse
+    regional_bias_gap = macro_average_metrics[1] - pooled_metrics[1]
+    # same comparison in target units: positive -> small regions perform worse
+    regional_bias_gap_rmse = macro_average_metrics[3] - pooled_metrics[0]
     print(f'regional performance metrics:')
     print(f'{df_region_report}\n')
     print(f'pooled performance metrics:')
@@ -310,5 +316,11 @@ def report_metrics(per_region_metrics: tuple[pd.DataFrame, float],
     print(f'{macro_average_metrics}\n')
     print(f'average rmse (equal region weights)*100 :')
     print(f'{macro_average_metrics_100}\n')
-    
-    return df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100
+    print(f'quadratic mean rmse (equal region weights)*100 :')
+    print(f'{macro_average_metrics_q_100}\n')
+    print(f'regional bias gap (macro r_sq - pooled r_sq):')
+    print(f'{regional_bias_gap}\n')
+    print(f'regional bias gap rmse (quadratic mean rmse - pooled rmse):')
+    print(f'{regional_bias_gap_rmse}\n')
+
+    return df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100, macro_average_metrics_q_100, regional_bias_gap, regional_bias_gap_rmse
