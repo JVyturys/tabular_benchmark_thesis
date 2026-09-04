@@ -1,0 +1,321 @@
+meta:
+  model: rf
+  condition: tuned
+  tuning iterations: 30
+  hyperparameters:
+    bootstrap: true
+    ccp_alpha: 0.0
+    criterion: squared_error
+    max_depth: 30
+    max_features: 0.33
+    max_leaf_nodes: null
+    max_samples: null
+    min_impurity_decrease: 0.0
+    min_samples_leaf: 1
+    min_samples_split: 2
+    min_weight_fraction_leaf: 0.0
+    monotonic_cst: null
+    n_estimators: 500
+    n_jobs: -1
+    oob_score: false
+    random_state: 17
+    verbose: 0
+    warm_start: false
+  parameter search log:
+  - - rf
+    - min_samples_leaf: 10
+      max_features: 0.05
+      max_depth: 20
+    - 0.16428872352030793
+  - - rf
+    - min_samples_leaf: 10
+      max_features: 0.2
+      max_depth: 30
+    - 0.16199982459766565
+  - - rf
+    - min_samples_leaf: 5
+      max_features: 0.2
+      max_depth: 20
+    - 0.16166720233050527
+  - - rf
+    - min_samples_leaf: 2
+      max_features: 0.05
+      max_depth: 20
+    - 0.16357568130300768
+  - - rf
+    - min_samples_leaf: 2
+      max_features: 0.05
+      max_depth: 30
+    - 0.16339277208458505
+  - - rf
+    - min_samples_leaf: 20
+      max_features: 0.33
+      max_depth: null
+    - 0.1626314204235332
+  - - rf
+    - min_samples_leaf: 10
+      max_features: 0.75
+      max_depth: 30
+    - 0.16184825889143983
+  - - rf
+    - min_samples_leaf: 5
+      max_features: 0.05
+      max_depth: 10
+    - 0.16807508083053377
+  - - rf
+    - min_samples_leaf: 5
+      max_features: 0.75
+      max_depth: 20
+    - 0.1616777301240836
+  - - rf
+    - min_samples_leaf: 20
+      max_features: 0.2
+      max_depth: 20
+    - 0.16274018958004305
+  - - rf
+    - min_samples_leaf: 5
+      max_features: 0.33
+      max_depth: 10
+    - 0.1648127636569547
+  - - rf
+    - min_samples_leaf: 1
+      max_features: 0.1
+      max_depth: 20
+    - 0.16245926107341305
+  - - rf
+    - min_samples_leaf: 5
+      max_features: 0.1
+      max_depth: 20
+    - 0.1624912986651711
+  - - rf
+    - min_samples_leaf: 1
+      max_features: 0.05
+      max_depth: null
+    - 0.16358895302484763
+  - - rf
+    - min_samples_leaf: 2
+      max_features: 1.0
+      max_depth: 30
+    - 0.1619688562100762
+  - - rf
+    - min_samples_leaf: 2
+      max_features: 0.33
+      max_depth: null
+    - 0.16147177538011598
+  - - rf
+    - min_samples_leaf: 10
+      max_features: 0.5
+      max_depth: 20
+    - 0.16200723439576833
+  - - rf
+    - min_samples_leaf: 20
+      max_features: 0.33
+      max_depth: 20
+    - 0.16247910950245567
+  - - rf
+    - min_samples_leaf: 1
+      max_features: 1.0
+      max_depth: 10
+    - 0.16489753082584438
+  - - rf
+    - min_samples_leaf: 2
+      max_features: 0.2
+      max_depth: 30
+    - 0.1616364233794242
+  - - rf
+    - min_samples_leaf: 2
+      max_features: 0.2
+      max_depth: null
+    - 0.16173239512855545
+  - - rf
+    - min_samples_leaf: 20
+      max_features: 0.1
+      max_depth: null
+    - 0.16356175696686173
+  - - rf
+    - min_samples_leaf: 1
+      max_features: 1.0
+      max_depth: 30
+    - 0.1620010892646105
+  - - rf
+    - min_samples_leaf: 10
+      max_features: 0.33
+      max_depth: 20
+    - 0.1618602894755228
+  - - rf
+    - min_samples_leaf: 10
+      max_features: 0.2
+      max_depth: 10
+    - 0.16527835125379425
+  - - rf
+    - min_samples_leaf: 10
+      max_features: 0.75
+      max_depth: null
+    - 0.16187058932859236
+  - - rf
+    - min_samples_leaf: 20
+      max_features: 1.0
+      max_depth: null
+    - 0.16291570639879985
+  - - rf
+    - min_samples_leaf: 1
+      max_features: 0.05
+      max_depth: 20
+    - 0.16368562022048103
+  - - rf
+    - min_samples_leaf: 20
+      max_features: 0.75
+      max_depth: null
+    - 0.16244411992841756
+  - - rf
+    - min_samples_leaf: 1
+      max_features: 0.33
+      max_depth: 30
+    - 0.16140455353058047
+  total processing time: 909.9840210380498
+  fit partition:
+  - 50381
+  - 125
+  val partition:
+  - 8425
+  - 125
+  train partition:
+  - 58806
+  - 125
+  test partition:
+  - 25221
+  - 125
+  git_commit: 6bfee2c
+  timestamp: '2026-09-04T18:20:58.877814'
+  used seed: 17
+metrics:
+  pooled metrics:
+  - 0.16199905741661938
+  - 0.3474384836991238
+  pooled RMSE *100: 16.199905741661937
+  macro average:
+  - 0.15941247515896861
+  - 0.34968705453432886
+  - -0.5191743315916049
+  - 0.1617197115754986
+  macro average rmse *100: 15.941247515896862
+  macro average q: 16.171971157549862
+  regional bias gap: 0.002248570835205077
+  regional bias gap rmse: -0.00027934584112077054
+region metrics:
+  shape:
+  - 13
+  - 7
+  columns:
+  - rmse_r
+  - ssr_r
+  - n_r
+  - denominator_r
+  - r_sq
+  - r_sq_reg
+  - rmse_100
+  results:
+    100277:
+      rmse_r: 0.17827948717204273
+      ssr_r: 16.273190679719193
+      n_r: 512
+      denominator_r: 18.439336333394568
+      r_sq: 0.20968680039001408
+      r_sq_reg: 0.11747416580022874
+      rmse_100: 17.827948717204272
+    100090:
+      rmse_r: 0.16963964743259327
+      ssr_r: 11.798820092232365
+      n_r: 410
+      denominator_r: 13.945208355868715
+      r_sq: 0.2844315143805747
+      r_sq_reg: 0.1539158260574186
+      rmse_100: 16.96396474325933
+    100334:
+      rmse_r: 0.15687357869021806
+      ssr_r: 66.66664704312498
+      n_r: 2709
+      denominator_r: 111.72032985558971
+      r_sq: 0.38807796634047365
+      r_sq_reg: 0.4032720174627247
+      rmse_100: 15.687357869021806
+    103384:
+      rmse_r: 0.19817028953711363
+      ssr_r: 50.73873104254869
+      n_r: 1292
+      denominator_r: 60.99048948949386
+      r_sq: 0.02349702444619861
+      r_sq_reg: 0.16808782045782933
+      rmse_100: 19.817028953711365
+    100024:
+      rmse_r: 0.14080714372992162
+      ssr_r: 37.21462528853602
+      n_r: 1877
+      denominator_r: 71.26574566549502
+      r_sq: 0.507001201302917
+      r_sq_reg: 0.4778048704743385
+      rmse_100: 14.080714372992162
+    100279:
+      rmse_r: 0.181655297454181
+      ssr_r: 31.282717444322287
+      n_r: 948
+      denominator_r: 36.79260615992481
+      r_sq: 0.1794734884692445
+      r_sq_reg: 0.14975532561224203
+      rmse_100: 18.165529745418098
+    100089:
+      rmse_r: 0.16025628777251624
+      ssr_r: 194.46469287919174
+      n_r: 7572
+      denominator_r: 301.6238204594612
+      r_sq: 0.36140334412806496
+      r_sq_reg: 0.35527408749426614
+      rmse_100: 16.025628777251626
+    100219:
+      rmse_r: 0.15354870400377585
+      ssr_r: 39.63328076658304
+      n_r: 1681
+      denominator_r: 53.784547110776394
+      r_sq: 0.4137419844386615
+      r_sq_reg: 0.2631102631588018
+      rmse_100: 15.354870400377585
+    100223:
+      rmse_r: 0.1465317461301897
+      ssr_r: 77.92026447235943
+      n_r: 3629
+      denominator_r: 122.56462111040743
+      r_sq: 0.466099985191907
+      r_sq_reg: 0.36425157793154617
+      rmse_100: 14.65317461301897
+    103401:
+      rmse_r: 0.20976481332293956
+      ssr_r: 44.265284569858125
+      n_r: 1006
+      denominator_r: 58.23092302537273
+      r_sq: -0.0941119538209989
+      r_sq_reg: 0.23983199526872367
+      rmse_100: 20.976481332293957
+    100276:
+      rmse_r: 0.16744193506003743
+      ssr_r: 58.09225294969838
+      n_r: 2072
+      denominator_r: 77.89480723341285
+      r_sq: 0.30285205450883057
+      r_sq_reg: 0.2542217509361805
+      rmse_100: 16.744193506003743
+    100218:
+      rmse_r: 0.1834192573322496
+      ssr_r: 5.281891961769298
+      n_r: 157
+      denominator_r: 6.578062111850989
+      r_sq: 0.16346070798115986
+      r_sq_reg: 0.19704437690646315
+      rmse_100: 18.341925733224958
+    100278:
+      rmse_r: 0.14513723288991745
+      ssr_r: 27.637039078676086
+      n_r: 1312
+      denominator_r: 29.27066701654164
+      r_sq: 0.4762136688790448
+      r_sq_reg: 0.05581109364341941
+      rmse_100: 14.513723288991745

@@ -3,11 +3,9 @@
 Define functions for procduction branch.
 '''
 ##################################################
-import pandas as pd
-import numpy as np
-import config as con
+import pandas as pd, numpy as np, config as con, matplotlib.pyplot as plt
 import math
-import matplotlib.pyplot as plt
+from sklearn.base import BaseEstimator
 
 ### feature cut-off helpers ---------------------------------------------------------
 
@@ -34,7 +32,6 @@ def variance_loss(x):
     medians = []
     variances = []
 
-
     # determine sample size
     n = len(x)
 
@@ -55,7 +52,6 @@ def variance_loss(x):
                 medians.append(float('nan'))
                 variances.append(float('nan'))
                 
-        
         else:
             # calculate missingness fraction p and (1-p)
             n_o = len(x[column].dropna())
@@ -323,3 +319,4 @@ def report_metrics(per_region_metrics: tuple[pd.DataFrame, float],
     print(f'{regional_bias_gap_rmse}\n')
 
     return df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100, macro_average_metrics_q_100, regional_bias_gap, regional_bias_gap_rmse
+

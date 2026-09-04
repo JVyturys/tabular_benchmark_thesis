@@ -13,7 +13,7 @@ class Gatekeeper():
 ### define initializers  --------------------------------------------------------- 
 
     def __init__(self, model):
-        print(f'\n\n[+][+][+] intializing data gatekeeper [+][+][+]\n\n')
+        print(f'\n\n[°°°] intializing data gatekeeper [°°°]\n\n')
         # initialize stage parameters
         self.model = model
         self._stage = None   
@@ -30,18 +30,18 @@ class Gatekeeper():
         self.merged_data = self.panel.merge(self.geo_id, on='orgpermid', how='left')
         self.merged_data = self.merged_data.merge(self.split, on="orgpermid", how='left')
 
-        print(f"excluding observations from tier 3 regions")
+        print(f"    [+++] excluding observations from tier 3 regions...")
         l_before = len(self.merged_data)
         self.regions = [*con.TIER1_REGS, *con.TIER2_REGS]
         self.merged_data = self.merged_data.loc[self.merged_data['lvl3permid'].isin(self.regions)]
         l_after = len(self.merged_data)
-        print(f"excluded observations: {l_before-l_after}")
+        print(f"    [+++] excluded observations: {l_before-l_after}\n")
 
         # perform preprocessing
         self._preprocessed_data = self._preprocessing()
 
         # print intitalization convergence
-        print(f'\n \n [-] data gatekeeper initialized for model class {self.model} [-] \n [-] proceed with stage call [-]\n \n')
+        print(f'\n    [+++] data gatekeeper initialized for model class {self.model}... \n')
 
     def _preprocessing(self):
         '''
@@ -51,14 +51,14 @@ class Gatekeeper():
         variables_to_keep = [*feature_names, 'esg_combined_score', 'orgpermid', 'lvl3permid', 'partition', ]
         pre_processed_data = self.merged_data[variables_to_keep].copy()
         constants = self.pre_processing_constants.set_index('variable')
-        print(f"    [>>>] initializing data preprocessing - raw data shape: {self.merged_data.shape}")
+        print(f"      [---] initializing data preprocessing - raw data shape: {self.merged_data.shape}")
         for feature in constants.index: 
             feature_mean = constants.loc[feature, 'mean']
             feature_median = constants.loc[feature, 'median']
             feature_std = constants.loc[feature, 'std']
             pre_processed_data[feature] = pre_processed_data[feature].fillna(feature_median)
             pre_processed_data[feature] = (pre_processed_data[feature] - feature_mean)/ feature_std
-        print(f"    [>>>] data preprocessing succesfull - data shape:  {pre_processed_data.shape} ")
+        print(f"      [---] data preprocessing succesfull - data shape:  {pre_processed_data.shape}...")
         return pre_processed_data
 
     def _require(self, expected):
@@ -102,7 +102,7 @@ class Gatekeeper():
         # slice data
         X,y,_ = self._slice_data({'fit'}, self._stage)
         assert X.shape[0] == y.shape[0], f"stage 1 X-dimensions and y-dimension mismatch"
-        print(f"stage 1 data provided, X - {X.shape}, y- {y.shape}")
+        print(f"    [+++] stage 1 data provided, X - {X.shape}, y- {y.shape}")
         return X, y
 ### ---------------------------------------------------------
 
@@ -126,7 +126,7 @@ class Gatekeeper():
         # slice data
         X,y,_ = self._slice_data({'val'}, self._stage)
         assert X.shape[0] == y.shape[0], f"stage 2 X-dimensions and y-dimension mismatch"
-        print(f"stage 2 data provided, X - {X.shape}, y - {y.shape}")
+        print(f"    [+++] stage 2 data provided, X - {X.shape}, y - {y.shape}")
         return X, y
 ### ---------------------------------------------------------
 
@@ -152,7 +152,7 @@ class Gatekeeper():
         # slice data
         X,y,_ = self._slice_data({'fit', 'val'}, self._stage)
         assert X.shape[0] == y.shape[0], f"stage 3 X-dimensions and y-dimension mismatch"
-        print(f"stage 3 data provided, X - {X.shape}, y - {y.shape}")
+        print(f"    [+++] stage 3 data provided, X - {X.shape}, y - {y.shape}")
         return X, y
 ### ---------------------------------------------------------
 
@@ -174,7 +174,7 @@ class Gatekeeper():
         # slice data
         X,y,geo_ID = self._slice_data({'test'}, self._stage)
         assert X.shape[0] == y.shape[0], f"stage 4 X-dimensions and y-dimension mismatch"
-        print(f"stage 4 data provided, X - {X.shape}, y - {y.shape}, geo-ID - {geo_ID.shape}")
+        print(f"    [+++] stage 4 data provided, X - {X.shape}, y - {y.shape}, geo-ID - {geo_ID.shape}")
         return X, y, geo_ID
 ### ---------------------------------------------------------
 
