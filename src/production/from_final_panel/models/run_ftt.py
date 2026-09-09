@@ -17,7 +17,7 @@ from rtdl_revisiting_models import FTTransformer
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MAX_EPOCHS = None   # set after inspecting one val curve
-BATCH_SIZE = None   # fixed, not searched state the reason
+BATCH_SIZE = 256   # REMINDER: not searched, explain why in write up 
 
 
 def build_model(X_fit, params: dict) -> torch.nn.Module:
@@ -38,8 +38,8 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
     optimizer = optim.AdamW(model.optimization_param_groups(), **opt_params)
 
     # transform partitions into torch friendly tensors
-    y_fit_t = y_fit.to_frame('y_fit').copy()
-    y_fit_t = torch.tensor(y_fit.values, dtype=torch.float32, device=DEVICE)
+    y_fit_t = y_fit.to_frame('y_fit')
+    y_fit_t = torch.tensor(y_fit_t.values, dtype=torch.float32, device=DEVICE)
     X_fit_t = torch.tensor(X_fit.values, dtype=torch.float32, device=DEVICE)
     X_val_t = torch.tensor(X_val.values, dtype=torch.float32, device=DEVICE)
 
@@ -50,28 +50,30 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
 
     # train network
     for epoch in range(max_epochs):
+        ## train
         model.train()
-        perm = torch.randperm(X_fit.shape_t[0], device=DEVICE)
+        perm = torch.randperm(X_fit_t.shape[0], device=DEVICE)
         for start in range(0, len(perm), BATCH_SIZE):
             idx = perm[start:start + BATCH_SIZE]
             xb, yb = X_fit_t[idx], y_fit_t[idx]
-            ## train
             optimizer.zero_grad()
             yb_pred = model(xb, None)
             loss = F.mse_loss(yb_pred, yb) 
             loss.backward()
             optimizer.step()
 
-            ## evaluate    
-            model.eval()
-            with torch.no_grad(): # deactivate gradient tracking
-                y_val_pred = model(X_val_t, None)
-            y_val_pred = y_val_pred.cpu().numpy().flatten() # format back to to 1D-series
-            score = ut.pooled_metrics(y_true=y_val, y_pred=y_val_pred)
-            curve.append(score)
-            if score < best_score:
-                best_score = score
-                best_epoch = epoch
+        ## evaluate    
+        model.eval()
+        with torch.no_grad(): # deactivate gradient tracking
+            y_val_pred = model(X_val_t, None)
+        y_val_pred = y_val_pred.cpu().numpy().flatten()
+        y_val_pred = pd.Series(y_val_pred, index=y_val.index)
+        metrics = ut.pooled_metrics(y_true=y_val, y_pred=y_val_pred)
+        score = metrics[0]
+        curve.append(score)
+        if score < best_score:
+            best_score = score
+            best_epoch = epoch
 
     return best_score, best_epoch, curve
 
