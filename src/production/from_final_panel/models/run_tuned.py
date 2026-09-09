@@ -72,7 +72,7 @@ def search(model_tag, X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tupl
     return winning_params, search_log
 
 def run_tuned(model_tag: str, condition: str = "tuned", n_iter: int = 30) -> None:
-    """Hoisted stage 1+2 → search → refit on stage 3 → score stage 4 → persist."""
+    """Hoisted stage 1+2 -> search → refit on stage 3 -> score stage 4 -> persist."""
     # start time counter 
     start_total = time.perf_counter()
     gk = Gatekeeper(model="nICL")

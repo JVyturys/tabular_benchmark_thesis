@@ -32,6 +32,7 @@ VIZ_TDIST = VIZ / "target_distr_preg.png"
 VIZ_CUTOFF = VIZ / "cutoff_kneedle.png"
 VIZ_NAN_SHARE = VIZ / "total_nan_shares_per_region.png"
 VIZ_USABLE_DROPPED = VIZ / "dropped_usable_features.png"
+VIZ_RMSE = VIZ / "ft_epoch_rmse_curve.png"
 
 ## SPLIT PARTITIONS
 SPLIT = FINAL_DIR / "split.parquet"

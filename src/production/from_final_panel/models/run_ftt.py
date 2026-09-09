@@ -6,17 +6,18 @@ capacity parameter selected by retrospective early stopping on pooled validation
 RMSE and the selected count is carried to the stage-3 refit unchanged.
 """
 import config as con, utils as ut, pandas as pd, numpy as np, torch.nn as nn, torch.optim as optim, torch.nn.functional as F
+import matplotlib.pyplot as plt
 import torch, rtdl, time, yaml, subprocess
 from stageguard import Gatekeeper
 from sklearn.model_selection import ParameterSampler
 from sklearn.metrics import root_mean_squared_error as rmse
 from datetime import datetime
-from rtdl_revisiting_models import FTTransformer
+
 
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MAX_EPOCHS = None   # set after inspecting one val curve
+MAX_EPOCHS = 200   # set after inspecting one val curve
 BATCH_SIZE = 256   # REMINDER: not searched, explain why in write up 
 
 
@@ -24,8 +25,9 @@ def build_model(X_fit, params: dict) -> torch.nn.Module:
     """Return an FT-Transformer on DEVICE configured with `params`.
     Fixed, non-searched settings."""
     arch_params = {k: params[k] for k in ['d_token', 'n_blocks', 'ffn_d_hidden', 'attention_dropout', 'ffn_dropout', 'residual_dropout']} 
-    return FTTransformer.make_baseline(
-    n_num_features=X_fit.shape[1], cat_cardinalities=None, d_out=1, **arch_params).to(DEVICE)
+    return rtdl.FTTransformer.make_baseline(n_num_features=X_fit.shape[1],
+                                        cat_cardinalities=None, d_out=1,
+                                          **arch_params).to(DEVICE)
 
 def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tuple[float, int, list]:
     """Train `model` for `max_epochs`, scoring pooled stage-2 RMSE after each epoch.
@@ -39,9 +41,9 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
 
     # transform partitions into torch friendly tensors
     y_fit_t = y_fit.to_frame('y_fit')
-    y_fit_t = torch.tensor(y_fit_t.values, dtype=torch.float32, device=DEVICE)
-    X_fit_t = torch.tensor(X_fit.values, dtype=torch.float32, device=DEVICE)
-    X_val_t = torch.tensor(X_val.values, dtype=torch.float32, device=DEVICE)
+    y_fit_t = torch.tensor(y_fit_t.to_numpy(dtype='float32'), dtype=torch.float32, device=DEVICE)
+    X_fit_t = torch.tensor(X_fit.to_numpy(dtype='float32'), dtype=torch.float32, device=DEVICE)
+    X_val_t = torch.tensor(X_val.to_numpy(dtype='float32'), dtype=torch.float32, device=DEVICE)
 
     # define validation containers
     curve = []
@@ -77,11 +79,6 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
 
     return best_score, best_epoch, curve
 
-                
-        
-    # TODO optimizer, loss, batching, per-epoch val forward pass, curve
-    # TODO score via ut.pooled_metrics
-
 def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int, list]:
     """Score n_iter sampled configurations. Returns (params, epoch, trial_log).
     Log every configuration, its best score and its best epoch."""
@@ -91,3 +88,61 @@ def run_ftt(condition: str = "tuned", n_iter: int = 30) -> None:
     """Hoisted stage 1+2 -> search -> fresh model trained on stage 3 for
     winning_epoch -> score stage 4 -> persist predictions, manifest, trial log."""
     # TODO train, score and log
+
+### --- baseline run
+test_gate = Gatekeeper(model='nICL')
+X_fit, y_fit = test_gate.stage_one_data()
+X_val, y_val = test_gate.stage_two_data()
+
+baseline_params = {
+    # architecture 
+    'd_token': 192,
+    'n_blocks': 3,
+    'ffn_d_hidden': 256,
+    'attention_dropout': 0.2,
+    'ffn_dropout': 0.1,
+    'residual_dropout': 0.0,
+    
+    # optimization
+    'lr': 1e-4,
+    'weight_decay': 1e-5
+}
+ft_baseline = build_model(X_fit=X_fit, params=baseline_params)
+best_score, best_epoch, curve = train_and_curve(ft_baseline,
+                                                X_fit=X_fit,
+                                                y_fit=y_fit,
+                                                X_val=X_val,
+                                                y_val=y_val,
+                                                max_epochs=MAX_EPOCHS, 
+                                                params=baseline_params)
+
+plt.style.use('seaborn-v0_8-whitegrid')
+
+color_line = "#1f4e79"
+epochs = np.arange(1, len(curve) + 1)
+fig, ax = plt.subplots(figsize=(10, 6))
+
+ax.plot(
+    epochs, 
+    curve, 
+    color=color_line, 
+    linewidth=2.5,
+    label="Validation RMSE"
+)
+
+ax.set_title("Model RMSE over Epochs", fontweight="bold", pad=15, fontsize=14)
+ax.set_xlabel("Epoch", labelpad=10)
+ax.set_ylabel("RMSE Score", labelpad=10)
+
+ax.grid(True, linestyle="--", alpha=0.5)
+
+ax.spines["top"].set_visible(False)
+ax.spines["right"].set_visible(False)
+ax.spines["left"].set_color("#cccccc")
+ax.spines["bottom"].set_color("#cccccc")
+
+ax.legend(frameon=True, fancybox=True, shadow=False, borderpad=1)
+
+plt.tight_layout()
+plt.savefig(con.VIZ_RMSE, dpi=600, bbox_inches='tight')
+plt.show()
