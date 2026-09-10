@@ -8,6 +8,12 @@ class Gatekeeper():
     Data provided depends on model training phase (training on fit, validating, training on train, testing) and
     on the model class (in-Context-Learing (ICL) vs. non-ICL (nICL)).
     Preprocessing constants are inherited from con.PRE_PROS_CONSTANTS
+
+    Gatekeeper.stage_one_data(): returns X_fit & y_fit  
+    Gatekeeper.stage_two_data(): returns X_val & y_val
+    Gatekeeper.stage_three_data(): returns X_train & y_train (train = fit+val partitions)
+    Gatekeeper.stage_four_data(): returns X_test & y_test & regional IDs
+
     '''
 
 ### define initializers  --------------------------------------------------------- 
