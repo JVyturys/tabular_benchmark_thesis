@@ -87,7 +87,7 @@ def run_tuned(model_tag: str, condition: str = "tuned", n_iter: int = 30) -> Non
     params, log = search(model_tag, X_fit, y_fit, X_val, y_val, n_iter)
     end_tuning = time.perf_counter() -start_tuning
     model = build_estimator(model_tag=model_tag, params=params)
-    print(f'      [>>>] model selection succesfull; duration: {round(end_tuning,2)}s')
+    print(f'      [>>>] model selection succesfull; duration: {round(end_tuning/60,2)}min')
 
     # fit on training partition
     print(f'      [>>>] fitting {model_tag} model on train partition...')
@@ -95,19 +95,19 @@ def run_tuned(model_tag: str, condition: str = "tuned", n_iter: int = 30) -> Non
     X_tr, y_tr = gk.stage_three_data()
     model.fit(X_tr, y_tr)
     end_training = time.perf_counter() - start_training
-    print(f'      [>>>] fitting train partition successfull; duration {round(end_training,2)}s')
+    print(f'      [>>>] fitting train partition successfull; duration {round(end_training/60,2)}min')
 
     # score
-    print(f'      [>>>] calculating test scores ...')
+    print(f'      [>>>] predicting on test partition ...')
     start_testing = time.perf_counter()
     X_test, y_test, geo_id = gk.stage_four_data()
     y_pred = model.predict(X_test)
     end_testing = time.perf_counter() - start_testing
-    print(f'      [>>>] test scores successfully calculated; duration {round(end_testing, 2)}s')
+    print(f'      [>>>] predicitons successfully calculated; duration {round(end_testing/60,2)}min')
     y_pred = pd.Series(y_pred, index=y_test.index)
 
     # calculate metrics 
-    print(f'      [>>>] saving&logging results to drive ...')
+    print(f'      [>>>] calculating scores & saving+logging results to drive ...')
     metrics_per_region = ut.per_region_metrics(y_true=y_test, y_pred=y_pred, geoID=geo_id)
     metrics_pooled = ut.pooled_metrics(y_true=y_test, y_pred=y_pred)
     metrics_average = ut.macro_average_metrics(metrics_per_region)

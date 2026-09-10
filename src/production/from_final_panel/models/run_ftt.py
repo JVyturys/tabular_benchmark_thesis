@@ -43,6 +43,20 @@ def build_model(X_fit, params: dict) -> torch.nn.Module:
                                         cat_cardinalities=None, d_out=1,
                                           **arch_params).to(DEVICE)
 
+def _train_one_epoch(model, X_t, y_t, optimizer) -> None:
+    """One pass over the training rows in shuffled batches of BATCH_SIZE."""
+    ## train
+    model.train()
+    perm = torch.randperm(X_t.shape[0], device=DEVICE)
+    for start in range(0, len(perm), BATCH_SIZE):
+        idx = perm[start:start + BATCH_SIZE]
+        xb, yb = X_t[idx], y_t[idx]
+        optimizer.zero_grad()
+        yb_pred = model(xb, None)
+        loss = F.mse_loss(yb_pred, yb) 
+        loss.backward()
+        optimizer.step()
+
 def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tuple[float, int, list]:
     """Train `model` for `max_epochs`, scoring pooled stage-2 RMSE after each epoch.
     Returns (best_score, best_epoch, curve). No weights are updated on val."""
@@ -71,16 +85,7 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
         if patience_counter >= PATIENCE: break
 
         ## train
-        model.train()
-        perm = torch.randperm(X_fit_t.shape[0], device=DEVICE)
-        for start in range(0, len(perm), BATCH_SIZE):
-            idx = perm[start:start + BATCH_SIZE]
-            xb, yb = X_fit_t[idx], y_fit_t[idx]
-            optimizer.zero_grad()
-            yb_pred = model(xb, None)
-            loss = F.mse_loss(yb_pred, yb) 
-            loss.backward()
-            optimizer.step()
+        _train_one_epoch(model, X_fit_t, y_fit_t, optimizer)
 
         ## evaluate    
         model.eval()
@@ -100,8 +105,8 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
 
     return best_score, best_epoch, curve
 
-def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int, list]:
-    """Score n_iter sampled configurations. Returns (winning_params, winning_epoch, trial_log).
+def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int, list, str]:
+    """Score n_iter sampled configurations. Returns (winning_params, winning_epoch, trial_log, filename).
     Each trial is seeded on its own index so a crashed run resumes exactly."""
 
     # define helper function for JSON logs that converts np.floats to python native dtypes 
@@ -119,6 +124,7 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
     winning_params = None
     winning_epoch = None
     hit_ceiling_counter = 0 # indicate how often the truncation flag is raised during model selection
+    winning_epoch_hit_ceiling = False
 
     # create timestamp
     time_now = datetime.now()
@@ -126,7 +132,7 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
 
     # start model selection
     for i, params in enumerate(sampler):
-        hit_ceiling = None # idicate if training curve was possibly truncnated; boolean 
+        hit_ceiling = False # idicate if training curve was possibly truncnated; boolean
         # start timer 
         trial_start = datetime.now()
         trial_timestamp = trial_start.strftime("%Y-%m-%d %H:%M:%S")
@@ -147,7 +153,8 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
         trial_results = {"trial": i, "score":score, "epochs trained": len(curve), "best_epoch":best_epoch, "truncated curve flag":hit_ceiling, "curve":curve, "params":params,
                          "trial_duration":f"{round(trial_duration, 2)}min","trial_timestamp":trial_timestamp} 
         search_log.append(trial_results)
-        with open(con.FTT_VAL_TRIALS / f"search_log_{timestamp}.jsonl", "a") as f:
+        filename = f"search_log_{timestamp}.jsonl"
+        with open(con.FTT_VAL_TRIALS / filename, "a") as f:
             f.write(json.dumps(trial_results, default=_numpy_converter) + "\n")
 
         # check for rmse minimum
@@ -155,41 +162,181 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
             winning_score = score
             winning_epoch = best_epoch
             winning_params = params
+            winning_epoch_hit_ceiling = hit_ceiling
 
-    if hit_ceiling_counter != 0:
-        raise RuntimeError(f"The maximum amount of epochs was reached {hit_ceiling_counter} times during model selection.")
+    if winning_epoch_hit_ceiling == True:
+        raise RuntimeError(f"the winning epoch hit MAX_EPOCH ceiling, possibly truncated learing curve.")
 
-    return winning_params, winning_epoch, search_log
-
-def _train_one_epoch(model, X_t, y_t, optimizer) -> None:
-    """One pass over the training rows in shuffled batches of BATCH_SIZE."""
-    # TODO(user): move the inner batch loop out of train_and_curve, verbatim
-    # TODO(user): then replace it in train_and_curve with a call to this
+    return winning_params, winning_epoch, search_log, filename
 
 
 def run_ftt(condition: str = "tuned", n_iter: int = 30) -> None:
     """Hoisted stage 1+2 -> search -> fresh model trained on stage 3 for
     winning_epoch -> score stage 4 -> persist predictions, manifest, trial log."""
+    model_tag = "ftt"
     start_total = time.perf_counter()
     gk = Gatekeeper(model="nICL")
     X_fit, y_fit = gk.stage_one_data()
     X_val, y_val = gk.stage_two_data()
 
-    # --- model selection
-    # TODO: search(...) -> params, winning_epoch, log
-    # TODO: build_model(X_fit, params) -- fresh, untrained
-
-    # --- refit on stage 3, winning_epoch epochs, no validation
+    #  perform model selection
+    print(f'      [>>>] starting model selection for {model_tag}...')
+    start_tuning = time.perf_counter()
+    winning_params, winning_epoch, search_log, filename = search(X_fit, y_fit, X_val, y_val, n_iter, con.SEED)
+    end_tuning = time.perf_counter() -start_tuning
+    print(f'      [>>>] model selection succesfull; duration: {round(end_tuning/60,2)}min')
+    
+    # refit on train = fit+val partition with winning_epoch
+    print(f'      [>>>] fitting {model_tag} model on train partition...')
+    start_training = time.perf_counter()
+    ## get refit data partition
     X_tr, y_tr = gk.stage_three_data()
-    # TODO: seed torch/cuda
-    # TODO: tensors (.to_numpy(dtype='float32')); y_tr reshaped to (n, 1)
-    # TODO: optimizer from the winning lr/weight_decay via optimization_param_groups()
-    # TODO: for _ in range(winning_epoch): _train_one_epoch(...)
 
-    # --- score stage 4
+    ## set seed
+    torch.manual_seed(con.SEED+n_iter)
+    torch.cuda.manual_seed(con.SEED+n_iter)
+
+    print(f'          [>] intializing model with tuned parameters...')
+    model = build_model(X_fit, winning_params)
+
+    ## transform partitions to torch friendly tensors
+    y_tr_t = y_tr.to_frame('y_tr')
+    y_tr_t = torch.tensor(y_tr_t.to_numpy(dtype='float32'), dtype=torch.float32, device=DEVICE)
+    X_tr_t = torch.tensor(X_tr.to_numpy(dtype='float32'), dtype=torch.float32, device=DEVICE)
+
+    ## slice optimization relevant parameters 
+    opt_params = {k: winning_params[k] for k in ['lr', 'weight_decay']}
+    optimizer = optim.AdamW(model.optimization_param_groups(), **opt_params)
+
+    ## refit on new partition and tuned parametrization 
+    print(f'          [>] fitting on training (fit+val) partition...')
+    for epoch in range(winning_epoch):
+        _train_one_epoch(model, X_tr_t, y_tr_t, optimizer)
+
+    end_training = time.perf_counter() - start_training
+    print(f'      [>>>] fitting train partition successfull; duration {round(end_training/60,2)}min')
+
+    # perform scoring
+    print(f'      [>>>] predicting on test partition ...')
+    start_testing = time.perf_counter()
+    ## get testing data
     X_test, y_test, geo_id = gk.stage_four_data()
-    # TODO: eval + no_grad + batched forward -> pd.Series on y_test.index
+    X_test_t = torch.tensor(X_test.to_numpy(dtype='float32'), dtype=torch.float32, device=DEVICE)
+    ## evaluate    
+    model.eval()
+    preds_list = []
+    with torch.no_grad(): # deactivate gradient tracking
+        for start in range(0, len(X_test_t), BATCH_SIZE): # forward in batches
+            xb = X_test_t[start:start + BATCH_SIZE]
+            batch_pred = model(xb, None)
+            preds_list.append(batch_pred)
+    y_pred = torch.cat(preds_list).cpu().numpy().flatten()
+    y_pred = pd.Series(y_pred, index=y_test.index)
+    end_testing = time.perf_counter() - start_testing
+    print(f'      [>>>] predictions successfully calculated; duration {round(end_testing/60,2)}min')
 
-    # --- metrics, parquet, manifest
-    # TODO: #   "hyperparameters" -> params + winning_epoch, MAX_EPOCHS, PATIENCE, BATCH_SIZE
-            #   "parameter search log" -> the JSONL filename, not the embedded curves
+    # calculate metrics 
+    print(f'      [>>>] calculating scores & saving+logging results to drive ...')
+    metrics_per_region = ut.per_region_metrics(y_true=y_test, y_pred=y_pred, geoID=geo_id)
+    metrics_pooled = ut.pooled_metrics(y_true=y_test, y_pred=y_pred)
+    metrics_average = ut.macro_average_metrics(metrics_per_region)
+    ut.assert_ss_res_decomposition(metrics_per_region, metrics_pooled)
+    df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100, macro_average_metrics_q_100, regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
+
+    # save results
+    orgpermid_year = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year']).iloc[X_test.index] 
+    results = y_pred.to_frame('y_pred').join(y_test)
+    results = results.join(orgpermid_year)
+    results = results.join(geo_id)
+    results.to_parquet(con.PRED_DIR/f'predictions_{model_tag}_{condition}__n_iter_{n_iter}__seed_{con.SEED}.parquet')
+
+    # stop time counter
+    total_time = time.perf_counter() - start_total
+
+    # log metrics 
+    ## definer helper for git hash 
+    def get_git_revision_hash(short: bool = True) -> str:
+        cmd = ["git", "rev-parse", "--short", "HEAD"] if short else ["git", "rev-parse", "HEAD"]
+        try:
+            return subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode("ascii").strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return "unknown"
+        
+    ## log parameters & results
+    manifest_dict = {
+        "meta":{
+            "model":model_tag,
+            "condition":condition,
+            "tuning iterations": n_iter,
+            "hyperparameters": winning_params,
+            "epochs trained" : winning_epoch,
+            "MAX_EPOCHS": MAX_EPOCHS,
+            "PATIENCE": PATIENCE,
+            "BATCH_SIZE": BATCH_SIZE,
+            "parameter search log": filename,
+            "total processing time": total_time,
+            "fit partition":X_fit.shape,
+            "val partition":X_val.shape,
+            "train partition":X_tr.shape,
+            "test partition":X_test.shape,
+            "git_commit": get_git_revision_hash(short=True),
+            "timestamp": datetime.now().isoformat(),
+            "used seed": con.SEED
+
+        },
+        "metrics": {
+            "pooled metrics": pooled_metrics_tupel,
+            "pooled RMSE *100": pooled_rmse_100,
+            "macro average": macro_average_metrics,
+            "macro average rmse *100": macro_average_metrics_100,
+            "macro average q": macro_average_metrics_q_100,
+            "regional bias gap":regional_bias_gap,
+            "regional bias gap rmse":regional_bias_gap_rmse
+        },
+
+        "region metrics": {
+            "shape": list(df_region_report.shape),
+            "columns": list(df_region_report.columns),
+            "results": df_region_report.to_dict(orient="index"),
+            },
+    }
+    ## change yaml settings to process NumPy Scalars
+    class LogDumper(yaml.SafeDumper):
+        '''custom Dumper that tells PyYAML to serialize NumPy scalars as standard numbers and tuples as regular YAML lists'''
+        pass
+
+    #### Use add_representer for exact types like tuple
+    LogDumper.add_representer(
+        tuple,
+        lambda dumper, data: dumper.represent_sequence("tag:yaml.org,2002:seq", data),
+    )
+
+    ### Use add_multi_representer for abstract base classes and subclasses
+    LogDumper.add_multi_representer(
+        np.floating,
+        lambda dumper, data: dumper.represent_float(float(data)),
+    )
+
+    LogDumper.add_multi_representer(
+        np.integer,
+        lambda dumper, data: dumper.represent_int(int(data)),
+    )
+
+    LogDumper.add_multi_representer(
+        np.ndarray,
+        lambda dumper, data: dumper.represent_list(data.tolist()),
+    )
+
+    LogDumper.add_multi_representer(
+        np.bool_,
+        lambda dumper, data: dumper.represent_bool(bool(data)),
+    )
+
+    with open(con.PRED_DIR_MAN / f"results_{model_tag}_{condition}_n_iter_{n_iter}_seed_{con.SEED}.yaml", "w", encoding="utf-8") as f:
+        yaml.dump(manifest_dict, f, Dumper=LogDumper, sort_keys=False, default_flow_style=False)
+
+    print(f'\n[°°°]{model_tag.upper()} regressor sucessfully tested and results saved - elapsed time: {round(total_time/60, 2)}min [°°°]')
+
+
+
+
