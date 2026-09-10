@@ -8,23 +8,36 @@ RMSE and the selected count is carried to the stage-3 refit unchanged.
 import config as con, utils as ut, pandas as pd, numpy as np, torch.nn as nn, torch.optim as optim, torch.nn.functional as F
 import matplotlib.pyplot as plt
 import torch, rtdl, time, yaml, subprocess
+import json
 from stageguard import Gatekeeper
 from sklearn.model_selection import ParameterSampler
 from sklearn.metrics import root_mean_squared_error as rmse
 from datetime import datetime
-
-
+from scipy.stats import loguniform, uniform, randint
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MAX_EPOCHS = 200   # set after inspecting one val curve
-BATCH_SIZE = 256   # REMINDER: not searched, explain why in write up 
-
+MAX_EPOCHS = 200   
+BATCH_SIZE = 256   
+SEARCH_SPACE = {
+    # architecture Defaults
+    'n_blocks': randint(1, 7),  # scipy's randint is exclusive at the upper bound (1 to 6)
+    'd_token': [64, 96, 128, 192, 256, 320, 384, 512],
+    'ffn_d_hidden_multiplier': uniform(0.66, 2.0),  # loc=0.66, scale=2.0 spans [0.66, 2.66]
+    'attention_dropout': uniform(0.0, 0.5),
+    'ffn_dropout': uniform(0.0, 0.5),
+    'residual_dropout': uniform(0.0, 0.5),
+    
+    # optimization defaults
+    'lr': loguniform(1e-5, 1e-3),
+    'weight_decay': loguniform(1e-6, 1e-3)
+}
 
 def build_model(X_fit, params: dict) -> torch.nn.Module:
     """Return an FT-Transformer on DEVICE configured with `params`.
     Fixed, non-searched settings."""
-    arch_params = {k: params[k] for k in ['d_token', 'n_blocks', 'ffn_d_hidden', 'attention_dropout', 'ffn_dropout', 'residual_dropout']} 
+    arch_params = {k: params[k] for k in ['d_token', 'n_blocks', 'attention_dropout', 'ffn_dropout', 'residual_dropout']}
+    arch_params['ffn_d_hidden'] = int(params['d_token'] * params['ffn_d_hidden_multiplier'])
     return rtdl.FTTransformer.make_baseline(n_num_features=X_fit.shape[1],
                                         cat_cardinalities=None, d_out=1,
                                           **arch_params).to(DEVICE)
@@ -48,7 +61,7 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
     # define validation containers
     curve = []
     best_score = float('inf')
-    best_epoch = -1
+    best_epoch = 0
 
     # train network
     for epoch in range(max_epochs):
@@ -75,14 +88,62 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
         curve.append(score)
         if score < best_score:
             best_score = score
-            best_epoch = epoch
+            best_epoch = epoch + 1 # +1 because range(max_epoch) is zero based 
 
     return best_score, best_epoch, curve
 
 def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int, list]:
-    """Score n_iter sampled configurations. Returns (params, epoch, trial_log).
-    Log every configuration, its best score and its best epoch."""
-    # TODO implement hyperparameter tuning
+    """Score n_iter sampled configurations. Returns (winning_params, winning_epoch, trial_log).
+    Each trial is seeded on its own index so a crashed run resumes exactly."""
+
+    # define helper function for JSON logs that converts np.floats to python native dtypes 
+    def _numpy_converter(obj):
+        if hasattr(obj, 'item'):
+            return obj.item()
+        raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+
+    # intiate sampler
+    sampler = ParameterSampler(SEARCH_SPACE, n_iter=n_iter, random_state=seed)
+
+    # set up placeholders
+    search_log = []
+    winning_score = np.inf
+    winning_params = None
+    winning_epoch = None
+
+    # create timestamp
+    time_now = datetime.now()
+    timestamp = time_now.strftime("%Y%m%d_%H%M%S")
+
+    # start model selection
+    for i, params in enumerate(sampler):
+        # start timer 
+        trial_start = datetime.now()
+        trial_timestamp = trial_start.strftime("%Y-%m-%d %H:%M:%S")
+        # set seed
+        torch.manual_seed(con.SEED+i)
+        torch.cuda.manual_seed(con.SEED+i)
+        # initiate and train model
+        model = build_model(X_fit=X_fit, params=params)
+        score, best_epoch, curve = train_and_curve(model, 
+                                                X_fit=X_fit, y_fit=y_fit,
+                                                X_val=X_val, y_val=y_val,
+                                                max_epochs=MAX_EPOCHS, params=params)
+        trial_duration = (datetime.now() - trial_start).total_seconds()/60 
+        # save results
+        trial_results = {"trial": i, "score":score, "best_epoch":best_epoch, "curve":curve, "params":params,
+                         "trial_duration":f"{round(trial_duration, 2)}min","trial_timestamp":trial_timestamp} 
+        search_log.append(trial_results)
+        with open(con.FTT_VAL_TRIALS / f"search_log_{timestamp}.jsonl", "a") as f:
+            f.write(json.dumps(trial_results, default=_numpy_converter) + "\n")
+
+        # check for rmse minimum
+        if score < winning_score:
+            winning_score = score
+            winning_epoch = best_epoch
+            winning_params = params
+
+    return winning_params, winning_epoch, search_log
 
 def run_ftt(condition: str = "tuned", n_iter: int = 30) -> None:
     """Hoisted stage 1+2 -> search -> fresh model trained on stage 3 for
