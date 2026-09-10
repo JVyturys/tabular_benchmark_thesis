@@ -340,3 +340,4 @@ def run_ftt(condition: str = "tuned", n_iter: int = 30) -> None:
 
 
 
+run_ftt(n_iter=30)
