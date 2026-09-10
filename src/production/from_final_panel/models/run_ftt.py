@@ -17,7 +17,7 @@ from scipy.stats import loguniform, uniform, randint
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MAX_EPOCHS = 200
+MAX_EPOCHS = 400
 PATIENCE = 50   
 BATCH_SIZE = 256   
 SEARCH_SPACE = {
@@ -95,6 +95,8 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
             patience_counter = 0 # reset patience
             best_score = score
             best_epoch = epoch + 1 # +1 because range(max_epoch) is zero based 
+        else:
+            patience_counter += 1     
 
     return best_score, best_epoch, curve
 
@@ -116,6 +118,7 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
     winning_score = np.inf
     winning_params = None
     winning_epoch = None
+    hit_ceiling_counter = 0 # indicate how often the truncation flag is raised during model selection
 
     # create timestamp
     time_now = datetime.now()
@@ -123,6 +126,7 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
 
     # start model selection
     for i, params in enumerate(sampler):
+        hit_ceiling = None # idicate if training curve was possibly truncnated; boolean 
         # start timer 
         trial_start = datetime.now()
         trial_timestamp = trial_start.strftime("%Y-%m-%d %H:%M:%S")
@@ -136,8 +140,11 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
                                                 X_val=X_val, y_val=y_val,
                                                 max_epochs=MAX_EPOCHS, params=params)
         trial_duration = (datetime.now() - trial_start).total_seconds()/60 
+        if len(curve) == MAX_EPOCHS:
+            hit_ceiling = True
+            hit_ceiling_counter += 1
         # save results
-        trial_results = {"trial": i, "score":score, "epochs trained": len(curve), "best_epoch":best_epoch, "curve":curve, "params":params,
+        trial_results = {"trial": i, "score":score, "epochs trained": len(curve), "best_epoch":best_epoch, "truncated curve flag":hit_ceiling, "curve":curve, "params":params,
                          "trial_duration":f"{round(trial_duration, 2)}min","trial_timestamp":trial_timestamp} 
         search_log.append(trial_results)
         with open(con.FTT_VAL_TRIALS / f"search_log_{timestamp}.jsonl", "a") as f:
@@ -148,6 +155,9 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
             winning_score = score
             winning_epoch = best_epoch
             winning_params = params
+
+    if hit_ceiling_counter != 0:
+        raise RuntimeError(f"The maximum amount of epochs was reached {hit_ceiling_counter} times during model selection.")
 
     return winning_params, winning_epoch, search_log
 
