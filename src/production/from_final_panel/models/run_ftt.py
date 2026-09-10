@@ -17,7 +17,8 @@ from scipy.stats import loguniform, uniform, randint
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MAX_EPOCHS = 200   
+MAX_EPOCHS = 200
+PATIENCE = 50   
 BATCH_SIZE = 256   
 SEARCH_SPACE = {
     # architecture Defaults
@@ -62,9 +63,13 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
     curve = []
     best_score = float('inf')
     best_epoch = 0
+    patience_counter = 0
 
     # train network
     for epoch in range(max_epochs):
+        # check if if loop ran out of patience
+        if patience_counter >= PATIENCE: break
+
         ## train
         model.train()
         perm = torch.randperm(X_fit_t.shape[0], device=DEVICE)
@@ -87,6 +92,7 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
         score = metrics[0]
         curve.append(score)
         if score < best_score:
+            patience_counter = 0 # reset patience
             best_score = score
             best_epoch = epoch + 1 # +1 because range(max_epoch) is zero based 
 
@@ -131,7 +137,7 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
                                                 max_epochs=MAX_EPOCHS, params=params)
         trial_duration = (datetime.now() - trial_start).total_seconds()/60 
         # save results
-        trial_results = {"trial": i, "score":score, "best_epoch":best_epoch, "curve":curve, "params":params,
+        trial_results = {"trial": i, "score":score, "epochs trained": len(curve), "best_epoch":best_epoch, "curve":curve, "params":params,
                          "trial_duration":f"{round(trial_duration, 2)}min","trial_timestamp":trial_timestamp} 
         search_log.append(trial_results)
         with open(con.FTT_VAL_TRIALS / f"search_log_{timestamp}.jsonl", "a") as f:
@@ -149,61 +155,3 @@ def run_ftt(condition: str = "tuned", n_iter: int = 30) -> None:
     """Hoisted stage 1+2 -> search -> fresh model trained on stage 3 for
     winning_epoch -> score stage 4 -> persist predictions, manifest, trial log."""
     # TODO train, score and log
-
-### --- baseline run
-test_gate = Gatekeeper(model='nICL')
-X_fit, y_fit = test_gate.stage_one_data()
-X_val, y_val = test_gate.stage_two_data()
-
-baseline_params = {
-    # architecture 
-    'd_token': 192,
-    'n_blocks': 3,
-    'ffn_d_hidden': 256,
-    'attention_dropout': 0.2,
-    'ffn_dropout': 0.1,
-    'residual_dropout': 0.0,
-    
-    # optimization
-    'lr': 1e-4,
-    'weight_decay': 1e-5
-}
-ft_baseline = build_model(X_fit=X_fit, params=baseline_params)
-best_score, best_epoch, curve = train_and_curve(ft_baseline,
-                                                X_fit=X_fit,
-                                                y_fit=y_fit,
-                                                X_val=X_val,
-                                                y_val=y_val,
-                                                max_epochs=MAX_EPOCHS, 
-                                                params=baseline_params)
-
-plt.style.use('seaborn-v0_8-whitegrid')
-
-color_line = "#1f4e79"
-epochs = np.arange(1, len(curve) + 1)
-fig, ax = plt.subplots(figsize=(10, 6))
-
-ax.plot(
-    epochs, 
-    curve, 
-    color=color_line, 
-    linewidth=2.5,
-    label="Validation RMSE"
-)
-
-ax.set_title("Model RMSE over Epochs", fontweight="bold", pad=15, fontsize=14)
-ax.set_xlabel("Epoch", labelpad=10)
-ax.set_ylabel("RMSE Score", labelpad=10)
-
-ax.grid(True, linestyle="--", alpha=0.5)
-
-ax.spines["top"].set_visible(False)
-ax.spines["right"].set_visible(False)
-ax.spines["left"].set_color("#cccccc")
-ax.spines["bottom"].set_color("#cccccc")
-
-ax.legend(frameon=True, fancybox=True, shadow=False, borderpad=1)
-
-plt.tight_layout()
-plt.savefig(con.VIZ_RMSE, dpi=600, bbox_inches='tight')
-plt.show()
