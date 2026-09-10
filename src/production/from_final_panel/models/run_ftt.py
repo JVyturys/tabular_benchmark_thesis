@@ -161,7 +161,35 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
 
     return winning_params, winning_epoch, search_log
 
+def _train_one_epoch(model, X_t, y_t, optimizer) -> None:
+    """One pass over the training rows in shuffled batches of BATCH_SIZE."""
+    # TODO(user): move the inner batch loop out of train_and_curve, verbatim
+    # TODO(user): then replace it in train_and_curve with a call to this
+
+
 def run_ftt(condition: str = "tuned", n_iter: int = 30) -> None:
     """Hoisted stage 1+2 -> search -> fresh model trained on stage 3 for
     winning_epoch -> score stage 4 -> persist predictions, manifest, trial log."""
-    # TODO train, score and log
+    start_total = time.perf_counter()
+    gk = Gatekeeper(model="nICL")
+    X_fit, y_fit = gk.stage_one_data()
+    X_val, y_val = gk.stage_two_data()
+
+    # --- model selection
+    # TODO: search(...) -> params, winning_epoch, log
+    # TODO: build_model(X_fit, params) -- fresh, untrained
+
+    # --- refit on stage 3, winning_epoch epochs, no validation
+    X_tr, y_tr = gk.stage_three_data()
+    # TODO: seed torch/cuda
+    # TODO: tensors (.to_numpy(dtype='float32')); y_tr reshaped to (n, 1)
+    # TODO: optimizer from the winning lr/weight_decay via optimization_param_groups()
+    # TODO: for _ in range(winning_epoch): _train_one_epoch(...)
+
+    # --- score stage 4
+    X_test, y_test, geo_id = gk.stage_four_data()
+    # TODO: eval + no_grad + batched forward -> pd.Series on y_test.index
+
+    # --- metrics, parquet, manifest
+    # TODO: #   "hyperparameters" -> params + winning_epoch, MAX_EPOCHS, PATIENCE, BATCH_SIZE
+            #   "parameter search log" -> the JSONL filename, not the embedded curves
