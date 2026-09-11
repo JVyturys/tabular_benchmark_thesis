@@ -105,8 +105,8 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
 
     return best_score, best_epoch, curve
 
-def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int, list, str]:
-    """Score n_iter sampled configurations. Returns (winning_params, winning_epoch, trial_log, filename).
+def search(X_fit, y_fit, X_val, y_val, n_iter, max_epochs,seed=con.SEED) -> tuple[list, str]:
+    """Score n_iter sampled configurations. Returns (trial_log, filename).
     Each trial is seeded on its own index so a crashed run resumes exactly."""
 
     # define helper function for JSON logs that converts np.floats to python native dtypes 
@@ -120,11 +120,6 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
 
     # set up placeholders
     search_log = []
-    winning_score = np.inf
-    winning_params = None
-    winning_epoch = None
-    hit_ceiling_counter = 0 # indicate how often the truncation flag is raised during model selection
-    winning_epoch_hit_ceiling = False
 
     # create timestamp
     time_now = datetime.now()
@@ -132,7 +127,7 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
 
     # start model selection
     for i, params in enumerate(sampler):
-        hit_ceiling = False # idicate if training curve was possibly truncnated; boolean
+        hit_ceiling = False # idicate if training curve was possibly truncated; boolean
         # start timer 
         trial_start = datetime.now()
         trial_timestamp = trial_start.strftime("%Y-%m-%d %H:%M:%S")
@@ -146,46 +141,80 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tuple[dict, int
                                                 X_val=X_val, y_val=y_val,
                                                 max_epochs=MAX_EPOCHS, params=params)
         trial_duration = (datetime.now() - trial_start).total_seconds()/60 
+        
         if len(curve) == MAX_EPOCHS:
             hit_ceiling = True
-            hit_ceiling_counter += 1
+
         # save results
-        trial_results = {"trial": i, "score":score, "epochs trained": len(curve), "best_epoch":best_epoch, "truncated curve flag":hit_ceiling, "curve":curve, "params":params,
+        trial_results = {"trial": i, "score":score, "MAX_EPOCHS": MAX_EPOCHS, "best_epoch":best_epoch, "truncated curve flag":hit_ceiling, "curve":curve, "params":params,
                          "trial_duration":f"{round(trial_duration, 2)}min","trial_timestamp":trial_timestamp} 
         search_log.append(trial_results)
         filename = f"search_log_{timestamp}.jsonl"
         with open(con.FTT_VAL_TRIALS / filename, "a") as f:
             f.write(json.dumps(trial_results, default=_numpy_converter) + "\n")
 
-        # check for rmse minimum
-        if score < winning_score:
-            winning_score = score
-            winning_epoch = best_epoch
-            winning_params = params
-            winning_epoch_hit_ceiling = hit_ceiling
+    return search_log, filename
 
-    if winning_epoch_hit_ceiling == True:
-        raise RuntimeError(f"the winning epoch hit MAX_EPOCH ceiling, possibly truncated learing curve.")
+def _select_winner(trials: list[dict]) -> tuple[dict, int, bool]:
+    """Pick the lowest-scoring trial from validation log."""
 
-    return winning_params, winning_epoch, search_log, filename
+    # check data integrity
+    required_keys = {"trial","score", "MAX_EPOCHS", "best_epoch","curve","params","trial_duration","trial_timestamp", "truncated curve flag"}
+    for trial in trials:
+        if not {"MAX_EPOCHS"}.issubset(trial.keys()):
+            trial["MAX_EPOCHS"] = 400 # migrating previous format of trial logs with new version.
+            trial["epochs trained"].pop()
+        assert required_keys.issubset(trial.keys()), f"Corrupted trial log: missing required keys in {trial.keys()}"
+        
+    # select winning configuration from json-log
+    winner = min(trials, key=lambda x: x["score"])
+
+    return winner["params"], winner["best_epoch"], winner["truncated curve flag"]
+
+def _load_trial_logs(*filenames: str) -> list[dict]:
+    """Parse JSONL trial logs. On a duplicate `trial` id, the later file wins,
+    so a corrected rerun supersedes its original without the original being edited."""
+    trials_by_id = {}
+    
+    for filename in filenames:
+        filepath = con.FTT_VAL_TRIALS / filename
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    trial_data = json.loads(line)
+                    trials_by_id[trial_data["trial"]] = trial_data
+    return list(trials_by_id.values())
 
 
-def run_ftt(condition: str = "tuned", n_iter: int = 30) -> None:
-    """Hoisted stage 1+2 -> search -> fresh model trained on stage 3 for
-    winning_epoch -> score stage 4 -> persist predictions, manifest, trial log."""
+def run_ftt(condition: str = "tuned", n_iter: int = 30, resume_from: str = None) -> None:
+    """Hoisted stage 1+2 -> search (or resume) -> select -> fresh model trained on
+    stage 3 for winning_epoch -> score stage 4 -> persist.
+    `resume_from`: JSONL filenames under con.FTT_VAL_TRIALS. When given, the search
+    is skipped and those logs supply the trials. n_iter still sets the refit seed."""
     model_tag = "ftt"
     start_total = time.perf_counter()
     gk = Gatekeeper(model="nICL")
     X_fit, y_fit = gk.stage_one_data()
     X_val, y_val = gk.stage_two_data()
 
-    #  perform model selection
-    print(f'      [>>>] starting model selection for {model_tag}...')
-    start_tuning = time.perf_counter()
-    winning_params, winning_epoch, search_log, filename = search(X_fit, y_fit, X_val, y_val, n_iter, con.SEED)
-    end_tuning = time.perf_counter() -start_tuning
-    print(f'      [>>>] model selection succesfull; duration: {round(end_tuning/60,2)}min')
+    if not resume_from:
+        print(f'      [>>>] starting model selection for {model_tag}...')
+        start_tuning = time.perf_counter()
+        search_log, filename = search(X_fit, y_fit, X_val, y_val, n_iter, MAX_EPOCHS, con.SEED)
+        end_tuning = time.perf_counter() - start_tuning
+        print(f'      [>>>] model selection succesfull; duration: {round(end_tuning/60,2)}min')
     
+    else:
+        print(f'      [>>>] loading tuned {model_tag} model from JSON logs ...')
+        search_log = _load_trial_logs(*resume_from)
+        filename = resume_from 
+        print('      [>>>] configuration loaded ...')
+
+    winning_params, winning_epoch, truncated_flag = _select_winner(search_log)
+
+    if truncated_flag:
+        raise RuntimeError("winning epoch hit MAX_EPOCH ceiling, possibly truncated learning curve...")
+       
     # refit on train = fit+val partition with winning_epoch
     print(f'      [>>>] fitting {model_tag} model on train partition...')
     start_training = time.perf_counter()
@@ -332,12 +361,7 @@ def run_ftt(condition: str = "tuned", n_iter: int = 30) -> None:
         lambda dumper, data: dumper.represent_bool(bool(data)),
     )
 
-    with open(con.PRED_DIR_MAN / f"results_{model_tag}_{condition}_n_iter_{n_iter}_seed_{con.SEED}.yaml", "w", encoding="utf-8") as f:
+    with open(con.FTT_VAL_TRIALS / f"results_{model_tag}_{condition}_n_iter_{n_iter}_seed_{con.SEED}.yaml", "w", encoding="utf-8") as f:
         yaml.dump(manifest_dict, f, Dumper=LogDumper, sort_keys=False, default_flow_style=False)
 
     print(f'\n[°°°]{model_tag.upper()} regressor sucessfully tested and results saved - elapsed time: {round(total_time/60, 2)}min [°°°]')
-
-
-
-
-run_ftt(n_iter=30)
