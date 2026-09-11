@@ -155,21 +155,15 @@ def search(X_fit, y_fit, X_val, y_val, n_iter, max_epochs,seed=con.SEED) -> tupl
 
     return search_log, filename
 
-def _select_winner(trials: list[dict]) -> tuple[dict, int, bool]:
+def _select_winner(trials: list[dict]) -> dict:
     """Pick the lowest-scoring trial from validation log."""
 
     # check data integrity
-    required_keys = {"trial","score", "MAX_EPOCHS", "best_epoch","curve","params","trial_duration","trial_timestamp", "truncated curve flag"}
+    required_keys = {"trial","score", "best_epoch","curve","params","trial_duration","trial_timestamp", "truncated curve flag"}
     for trial in trials:
-        if not {"MAX_EPOCHS"}.issubset(trial.keys()):
-            trial["MAX_EPOCHS"] = 400 # migrating previous format of trial logs with new version.
-            trial["epochs trained"].pop()
         assert required_keys.issubset(trial.keys()), f"Corrupted trial log: missing required keys in {trial.keys()}"
         
-    # select winning configuration from json-log
-    winner = min(trials, key=lambda x: x["score"])
-
-    return winner["params"], winner["best_epoch"], winner["truncated curve flag"]
+    return min(trials, key=lambda x: x["score"])
 
 def _load_trial_logs(*filenames: str) -> list[dict]:
     """Parse JSONL trial logs. On a duplicate `trial` id, the later file wins,
@@ -186,7 +180,7 @@ def _load_trial_logs(*filenames: str) -> list[dict]:
     return list(trials_by_id.values())
 
 
-def run_ftt(condition: str = "tuned", n_iter: int = 30, resume_from: str = None) -> None:
+def run_ftt(condition: str = "tuned", n_iter: int = 30, resume_from: list[str] = None) -> None:
     """Hoisted stage 1+2 -> search (or resume) -> select -> fresh model trained on
     stage 3 for winning_epoch -> score stage 4 -> persist.
     `resume_from`: JSONL filenames under con.FTT_VAL_TRIALS. When given, the search
@@ -201,20 +195,23 @@ def run_ftt(condition: str = "tuned", n_iter: int = 30, resume_from: str = None)
         print(f'      [>>>] starting model selection for {model_tag}...')
         start_tuning = time.perf_counter()
         search_log, filename = search(X_fit, y_fit, X_val, y_val, n_iter, MAX_EPOCHS, con.SEED)
+        filenames = [filename]
         end_tuning = time.perf_counter() - start_tuning
         print(f'      [>>>] model selection succesfull; duration: {round(end_tuning/60,2)}min')
     
     else:
         print(f'      [>>>] loading tuned {model_tag} model from JSON logs ...')
         search_log = _load_trial_logs(*resume_from)
-        filename = resume_from 
+        filenames = list(resume_from)
         print('      [>>>] configuration loaded ...')
 
-    winning_params, winning_epoch, truncated_flag = _select_winner(search_log)
+    winner = _select_winner(search_log)
+    winning_params = winner["params"]
+    winning_epoch  = winner["best_epoch"]
 
-    if truncated_flag:
+    if winner["truncated curve flag"]:
         raise RuntimeError("winning epoch hit MAX_EPOCH ceiling, possibly truncated learning curve...")
-       
+
     # refit on train = fit+val partition with winning_epoch
     print(f'      [>>>] fitting {model_tag} model on train partition...')
     start_training = time.perf_counter()
@@ -299,10 +296,12 @@ def run_ftt(condition: str = "tuned", n_iter: int = 30, resume_from: str = None)
             "tuning iterations": n_iter,
             "hyperparameters": winning_params,
             "epochs trained" : winning_epoch,
-            "MAX_EPOCHS": MAX_EPOCHS,
+            "winning validation RMSE":winner["score"],
+            "winning trial":winner["trial"],
+            "MAX_EPOCHS": winner.get("MAX_EPOCHS", MAX_EPOCHS),
             "PATIENCE": PATIENCE,
             "BATCH_SIZE": BATCH_SIZE,
-            "parameter search log": filename,
+            "parameter search log": filenames,
             "total processing time": total_time,
             "fit partition":X_fit.shape,
             "val partition":X_val.shape,
@@ -365,3 +364,4 @@ def run_ftt(condition: str = "tuned", n_iter: int = 30, resume_from: str = None)
         yaml.dump(manifest_dict, f, Dumper=LogDumper, sort_keys=False, default_flow_style=False)
 
     print(f'\n[°°°]{model_tag.upper()} regressor sucessfully tested and results saved - elapsed time: {round(total_time/60, 2)}min [°°°]')
+
