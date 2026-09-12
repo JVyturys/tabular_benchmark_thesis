@@ -1,6 +1,6 @@
 meta:
-  model: nICL
-  condition: baseline
+  model: rf
+  condition: test_run
   hyperparameters:
     bootstrap: true
     ccp_alpha: 0.0

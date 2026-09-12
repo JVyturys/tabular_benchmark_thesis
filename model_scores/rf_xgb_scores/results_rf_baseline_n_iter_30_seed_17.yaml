@@ -1,6 +1,6 @@
 meta:
   model: rf
-  condition: 30
+  condition: baseline
   tuning iterations: 30
   hyperparameters:
     bootstrap: true
