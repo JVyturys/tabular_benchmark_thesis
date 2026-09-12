@@ -57,14 +57,14 @@ def search(model_tag, X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tupl
         y_pred = model.predict(X_val)
         y_pred = pd.Series(y_pred, index=y_val.index)
         metrics = ut.pooled_metrics(y_true=y_val, y_pred=y_pred)
-        score = metrics[0]
+        rmse = np.sqrt(metrics[0]/(len(y_fit)))
 
         # log current configuration results
-        search_log.append([model_tag, params, score])
+        search_log.append([model_tag, params, rmse])
 
         # check for optimum
-        if score < winning_score:
-            winning_score = score
+        if rmse < winning_score:
+            winning_score = rmse
             winning_params = params
         else:
             pass
@@ -112,7 +112,7 @@ def run_tuned(model_tag: str, condition: str = "tuned", n_iter: int = 30) -> Non
     metrics_pooled = ut.pooled_metrics(y_true=y_test, y_pred=y_pred)
     metrics_average = ut.macro_average_metrics(metrics_per_region, [*con.TIER1_REGS])
     ut.assert_ss_res_decomposition(metrics_per_region, metrics_pooled)
-    df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100, macro_average_metrics_q_100, regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
+    df_region_report, pooled_r2, pooled_rmse, average_rmse, average_r2, average_rmse_sq,regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
 
     # save results
     orgpermid_year = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year']).iloc[X_test.index] 
@@ -151,11 +151,11 @@ def run_tuned(model_tag: str, condition: str = "tuned", n_iter: int = 30) -> Non
 
         },
         "metrics": {
-            "pooled metrics": pooled_metrics_tupel,
-            "pooled RMSE *100": pooled_rmse_100,
-            "macro average": [f"average_rmse: {macro_average_metrics[0]}", f"average r_sq (global denominator): {macro_average_metrics[1]}", f"average_rmse_q: {macro_average_metrics[3]}"],
-            "macro average rmse *100": macro_average_metrics_100,
-            "macro average q": macro_average_metrics_q_100,
+            "pooled_RMSE":pooled_rmse,
+            "pooled R2":pooled_r2,
+            "average_RMSE":average_rmse,
+            "average R2 (global denominator)":average_r2,
+            "average_rmse_sq":average_rmse_sq,
             "regional bias gap":regional_bias_gap,
             "regional bias gap rmse":regional_bias_gap_rmse
         },
@@ -203,5 +203,3 @@ def run_tuned(model_tag: str, condition: str = "tuned", n_iter: int = 30) -> Non
 
     print(f'\n[°°°]{model_tag.upper()} regressor sucessfully tested and results saved - elapsed time: {round(total_time/60, 2)}min [°°°]')
 
-# run_tuned("rf", condition= "tuned", n_iter=30)
-run_tuned("xgb", condition= "tuned", n_iter=30)

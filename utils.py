@@ -257,18 +257,14 @@ def per_region_metrics(y_true: pd.Series, *, y_pred: pd.Series, geoID: pd.Series
     return (df_metrics, global_sum_residuals)
 
 
-def pooled_metrics(y_true: pd.Series, *, y_pred: pd.Series) -> tuple[float, float, float]:
+def pooled_metrics(y_true: pd.Series, *, y_pred: pd.Series) -> tuple[float, float]:
     # assert index alligment
     assert y_true.index.equals(y_pred.index), "index misallignment of target&predition"
     assert y_true.notna().all() and y_pred.notna().all(), "NaN in target or prediction"
-    # calculate global denominator
-    denominator = len(y_true) * np.var(y_true, ddof=0)
+    sigma_sq_y = np.var(y_true, ddof=0)
     # nominator and RMSE
     ssr = np.sum((y_pred - y_true)**2)  # sum of squared errors in region r
-    rmse = np.sqrt(ssr / len(y_true))
-    r_sqrd = 1 - ssr / denominator
-    return (rmse, r_sqrd, ssr)
-
+    return (ssr, sigma_sq_y)
 
 def macro_average_metrics(per_reg_metrics: tuple[pd.DataFrame, float], tier1_regions: list) -> tuple[float, float, float, float]:
     df_metrics = per_reg_metrics[0]
@@ -276,48 +272,40 @@ def macro_average_metrics(per_reg_metrics: tuple[pd.DataFrame, float], tier1_reg
     average_rmse = df_metrics['rmse_r'].mean()
     average_r_sqrd = df_metrics['r_sq'].mean()
     average_r_sqrd_reg = df_metrics['r_sq_reg'].mean() # not reprorted as no aggregational insight
-    # quadratic mean: comparable to the pooled rmse, free of the sqrt averaging bias
     average_rmse_q = np.sqrt((df_metrics['rmse_r']**2).mean())
     return (average_rmse, average_r_sqrd, average_r_sqrd_reg, average_rmse_q)
 
 
-def assert_ss_res_decomposition(per_region_metrics: tuple[pd.DataFrame, float], pooled_metrics: tuple[float, float, float]) -> None:
+def assert_ss_res_decomposition(per_region_metrics: tuple[pd.DataFrame, float], pooled_metrics: tuple[float, float]) -> None:
     # same non-negative sum, only the accumulation order differs (worst observed 3e-16);
     # the np.isclose default rtol=1e-5 would mask a genuine partition error
-    assert np.isclose(per_region_metrics[1], pooled_metrics[2], rtol=1e-9, atol=1e-12), "SSE global vs summed SSE per region do not match"
-
+    assert np.isclose(per_region_metrics[1], pooled_metrics[0], rtol=1e-9, atol=1e-12), "SSE global vs summed SSE per region do not match"
 
 def report_metrics(per_region_metrics: tuple[pd.DataFrame, float],
-                   pooled_metrics: tuple[float, float, float],
+                   pooled_metrics: tuple[float, float],
                    macro_average_metrics: tuple[float, float, float, float],
-                   tier1_regions: list) -> tuple[pd.DataFrame, tuple[float, float], float, tuple[float, float, float, float], float, float, float, float]:
+                   tier1_regions: list) -> tuple[pd.DataFrame, float, float, float, float, float, float]:
+
+    # filter data frame to tier 1 regions
     df_region_report = per_region_metrics[0].copy()
     df_region_report = df_region_report.loc[tier1_regions]
-    df_region_report['rmse_100'] = df_region_report['rmse_r'] * 100
-    pooled_metrics_tupel = (pooled_metrics[0], pooled_metrics[1])
-    pooled_rmse_100 = pooled_metrics_tupel[0] * 100
-    macro_average_metrics_100 = macro_average_metrics[0] * 100
-    macro_average_metrics_q_100 = macro_average_metrics[3] * 100
-    # equal region weights vs size weights: positive -> large regions perform worse
-    regional_bias_gap = macro_average_metrics[1] - pooled_metrics[1]
-    # same comparison in target units: positive -> small regions perform worse
-    regional_bias_gap_rmse = macro_average_metrics[3] - pooled_metrics[0]
-    print(f'regional performance metrics:')
-    print(f'{df_region_report}\n')
-    print(f'pooled performance metrics:')
-    print(f'{pooled_metrics_tupel}\n')
-    print(f'pooled rmse*100:')
-    print(f'{pooled_rmse_100}\n')
-    print(f'average performance (equal region weights):')
-    print(f'{macro_average_metrics}\n')
-    print(f'average rmse (equal region weights)*100 :')
-    print(f'{macro_average_metrics_100}\n')
-    print(f'quadratic mean rmse (equal region weights)*100 :')
-    print(f'{macro_average_metrics_q_100}\n')
-    print(f'regional bias gap (macro r_sq - pooled r_sq):')
-    print(f'{regional_bias_gap}\n')
-    print(f'regional bias gap rmse (quadratic mean rmse - pooled rmse):')
-    print(f'{regional_bias_gap_rmse}\n')
 
-    return df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100, macro_average_metrics_q_100, regional_bias_gap, regional_bias_gap_rmse
+    # determine tier-1 pooled R and RMSE
+    sigma_y_sq_global = pooled_metrics[1]
+    pooled_r2 = 1 - df_region_report['ssr_r'].sum()/(df_region_report['n_r'].sum()*sigma_y_sq_global)
+    pooled_rmse = np.sqrt((df_region_report['ssr_r'].sum()/df_region_report['n_r'].sum()))
+
+    # equal region weights vs size weights: positive -> the model predicts better on the regions that supply most of the observations than on the average region.
+    regional_bias_gap = pooled_r2 - macro_average_metrics[1]
+
+    # same comparison in target units: positive -> the model predicts better on the regions that supply most of the observations than on the average region.
+    regional_bias_gap_rmse = macro_average_metrics[3] - pooled_rmse
+
+    average_rmse = macro_average_metrics[0]
+    average_r2 = macro_average_metrics[1]
+    average_rmse_sq = macro_average_metrics[3]
+
+
+
+    return df_region_report, pooled_r2, pooled_rmse, average_rmse, average_r2, average_rmse_sq,regional_bias_gap, regional_bias_gap_rmse
 

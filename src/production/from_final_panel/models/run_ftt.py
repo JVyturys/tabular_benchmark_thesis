@@ -17,7 +17,7 @@ from scipy.stats import loguniform, uniform, randint
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MAX_EPOCHS = 400
+MAX_EPOCHS = 800
 PATIENCE = 50   
 BATCH_SIZE = 256   
 SEARCH_SPACE = {
@@ -94,11 +94,11 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
         y_val_pred = y_val_pred.cpu().numpy().flatten()
         y_val_pred = pd.Series(y_val_pred, index=y_val.index)
         metrics = ut.pooled_metrics(y_true=y_val, y_pred=y_val_pred)
-        score = metrics[0]
-        curve.append(score)
-        if score < best_score:
+        rmse = np.sqrt(metrics[0]/(len(y_fit)))
+        curve.append(rmse)
+        if rmse < best_score:
             patience_counter = 0 # reset patience
-            best_score = score
+            best_score = rmse
             best_epoch = epoch + 1 # +1 because range(max_epoch) is zero based 
         else:
             patience_counter += 1     
@@ -267,7 +267,7 @@ def run_ftt(condition: str = "tuned", n_iter: int = 30, resume_from: list[str] =
     metrics_pooled = ut.pooled_metrics(y_true=y_test, y_pred=y_pred)
     metrics_average = ut.macro_average_metrics(metrics_per_region, [*con.TIER1_REGS])
     ut.assert_ss_res_decomposition(metrics_per_region, metrics_pooled)
-    df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100, macro_average_metrics_q_100, regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
+    df_region_report, pooled_r2, pooled_rmse, average_rmse, average_r2, average_rmse_sq,regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
 
     # save results
     orgpermid_year = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year']).iloc[X_test.index] 
@@ -313,11 +313,11 @@ def run_ftt(condition: str = "tuned", n_iter: int = 30, resume_from: list[str] =
 
         },
         "metrics": {
-            "pooled metrics": pooled_metrics_tupel,
-            "pooled RMSE *100": pooled_rmse_100,
-            "macro average": [f"average_rmse: {macro_average_metrics[0]}", f"average r_sq (global denominator): {macro_average_metrics[1]}", f"average_rmse_q: {macro_average_metrics[3]}"],
-            "macro average rmse *100": macro_average_metrics_100,
-            "macro average q": macro_average_metrics_q_100,
+            "pooled_RMSE":pooled_rmse,
+            "pooled R2":pooled_r2,
+            "average_RMSE":average_rmse,
+            "average R2 (global denominator)":average_r2,
+            "average_rmse_sq":average_rmse_sq,
             "regional bias gap":regional_bias_gap,
             "regional bias gap rmse":regional_bias_gap_rmse
         },

@@ -42,9 +42,9 @@ def run_baseline(model_tag: str, condition: str) -> None:
     # calculate metrics 
     metrics_per_region = ut.per_region_metrics(y_true=y_test, y_pred=y_pred, geoID=geo_id)
     metrics_pooled = ut.pooled_metrics(y_true=y_test, y_pred=y_pred)
-    metrics_average = ut.macro_average_metrics(metrics_per_region)
+    metrics_average = ut.macro_average_metrics(metrics_per_region, [*con.TIER1_REGS])
     ut.assert_ss_res_decomposition(metrics_per_region, metrics_pooled)
-    df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100, macro_average_metrics_q_100, regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
+    df_region_report, pooled_r2, pooled_rmse, average_rmse, average_r2, average_rmse_sq,regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
 
     # save results
     orgpermid_year = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year']).iloc[X_test.index] 
@@ -80,11 +80,11 @@ def run_baseline(model_tag: str, condition: str) -> None:
 
         },
         "metrics": {
-            "pooled metrics": pooled_metrics_tupel,
-            "pooled RMSE *100": pooled_rmse_100,
-            "macro average": macro_average_metrics,
-            "macro average rmse *100": macro_average_metrics_100,
-            "macro average q": macro_average_metrics_q_100,
+            "pooled_RMSE":pooled_rmse,
+            "pooled R2":pooled_r2,
+            "average_RMSE":average_rmse,
+            "average R2 (global denominator)":average_r2,
+            "average_rmse_sq":average_rmse_sq,
             "regional bias gap":regional_bias_gap,
             "regional bias gap rmse":regional_bias_gap_rmse
         },
@@ -129,6 +129,4 @@ def run_baseline(model_tag: str, condition: str) -> None:
 
     with open(con.PRED_DIR_MAN / f"results_{model_tag}_{condition}_seed_{con.SEED}.yaml", "w", encoding="utf-8") as f:
         yaml.dump(manifest_dict, f, Dumper=LogDumper, sort_keys=False, default_flow_style=False)
-
-run_baseline('rf', 'baseline')
 
