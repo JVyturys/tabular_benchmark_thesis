@@ -270,11 +270,12 @@ def pooled_metrics(y_true: pd.Series, *, y_pred: pd.Series) -> tuple[float, floa
     return (rmse, r_sqrd, ssr)
 
 
-def macro_average_metrics(per_reg_metrics: tuple[pd.DataFrame, float]) -> tuple[float, float, float, float]:
+def macro_average_metrics(per_reg_metrics: tuple[pd.DataFrame, float], tier1_regions: list) -> tuple[float, float, float, float]:
     df_metrics = per_reg_metrics[0]
+    df_metrics = df_metrics.loc[tier1_regions]
     average_rmse = df_metrics['rmse_r'].mean()
     average_r_sqrd = df_metrics['r_sq'].mean()
-    average_r_sqrd_reg = df_metrics['r_sq_reg'].mean()
+    average_r_sqrd_reg = df_metrics['r_sq_reg'].mean() # not reprorted as no aggregational insight
     # quadratic mean: comparable to the pooled rmse, free of the sqrt averaging bias
     average_rmse_q = np.sqrt((df_metrics['rmse_r']**2).mean())
     return (average_rmse, average_r_sqrd, average_r_sqrd_reg, average_rmse_q)

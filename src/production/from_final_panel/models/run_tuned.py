@@ -110,7 +110,7 @@ def run_tuned(model_tag: str, condition: str = "tuned", n_iter: int = 30) -> Non
     print(f'      [>>>] calculating scores & saving+logging results to drive ...')
     metrics_per_region = ut.per_region_metrics(y_true=y_test, y_pred=y_pred, geoID=geo_id)
     metrics_pooled = ut.pooled_metrics(y_true=y_test, y_pred=y_pred)
-    metrics_average = ut.macro_average_metrics(metrics_per_region)
+    metrics_average = ut.macro_average_metrics(metrics_per_region, [*con.TIER1_REGS])
     ut.assert_ss_res_decomposition(metrics_per_region, metrics_pooled)
     df_region_report, pooled_metrics_tupel, pooled_rmse_100, macro_average_metrics, macro_average_metrics_100, macro_average_metrics_q_100, regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
 
@@ -153,7 +153,7 @@ def run_tuned(model_tag: str, condition: str = "tuned", n_iter: int = 30) -> Non
         "metrics": {
             "pooled metrics": pooled_metrics_tupel,
             "pooled RMSE *100": pooled_rmse_100,
-            "macro average": macro_average_metrics,
+            "macro average": [f"average_rmse: {macro_average_metrics[0]}", f"average r_sq (global denominator): {macro_average_metrics[1]}", f"average_rmse_q: {macro_average_metrics[3]}"],
             "macro average rmse *100": macro_average_metrics_100,
             "macro average q": macro_average_metrics_q_100,
             "regional bias gap":regional_bias_gap,
