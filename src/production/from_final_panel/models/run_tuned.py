@@ -57,7 +57,7 @@ def search(model_tag, X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tupl
         y_pred = model.predict(X_val)
         y_pred = pd.Series(y_pred, index=y_val.index)
         metrics = ut.pooled_metrics(y_true=y_val, y_pred=y_pred)
-        rmse = np.sqrt(metrics[0]/(len(y_fit)))
+        rmse = np.sqrt(metrics[0]/(len(y_val)))
 
         # log current configuration results
         search_log.append([model_tag, params, rmse])

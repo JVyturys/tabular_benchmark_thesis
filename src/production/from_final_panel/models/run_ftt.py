@@ -94,7 +94,7 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
         y_val_pred = y_val_pred.cpu().numpy().flatten()
         y_val_pred = pd.Series(y_val_pred, index=y_val.index)
         metrics = ut.pooled_metrics(y_true=y_val, y_pred=y_val_pred)
-        rmse = np.sqrt(metrics[0]/(len(y_fit)))
+        rmse = np.sqrt(metrics[0]/(len(y_val)))
         curve.append(rmse)
         if rmse < best_score:
             patience_counter = 0 # reset patience
