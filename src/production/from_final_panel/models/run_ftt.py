@@ -293,6 +293,7 @@ def run_ftt(condition: str = "udepl", configuration: str = 'tuned', n_iter: int 
         "meta":{
             "model":model_tag,
             "condition":condition,
+            'configuration': configuration,
             "tuning iterations": n_iter,
             "hyperparameters": winning_params,
             "epochs trained" : winning_epoch,
@@ -360,7 +361,7 @@ def run_ftt(condition: str = "udepl", configuration: str = 'tuned', n_iter: int 
         lambda dumper, data: dumper.represent_bool(bool(data)),
     )
 
-    with open(con.FTT_VAL_TRIALS / f"results_{model_tag}_{condition}_n_iter_{n_iter}_seed_{con.SEED}.yaml", "w", encoding="utf-8") as f:
+    with open(con.FTT_VAL_TRIALS / f"results_{model_tag}_{configuration}_{condition}_n_iter_{n_iter}_seed_{con.SEED}.yaml", "w", encoding="utf-8") as f:
         yaml.dump(manifest_dict, f, Dumper=LogDumper, sort_keys=False, default_flow_style=False)
 
     print(f'\n[°°°]{model_tag.upper()} regressor sucessfully tested and results saved - elapsed time: {round(total_time/60, 2)}min [°°°]')
