@@ -191,6 +191,7 @@ def run_icl(model_tag: str, *, condition: str = 'udepl', configuration: str = 'd
         "meta": {
             "model": model_tag,
             "condition": condition,
+            "configuration":configuration,
             "hyperparameters": model.get_params(),
             "device": DEVICE,
             "ignore_pretraining_limits": IGNORE_PRETRAINING_LIMITS,
