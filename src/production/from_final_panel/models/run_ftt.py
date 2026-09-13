@@ -180,7 +180,7 @@ def _load_trial_logs(*filenames: str) -> list[dict]:
     return list(trials_by_id.values())
 
 
-def run_ftt(condition: str = "udepl", configuration: str = 'tuned', n_iter: int = 30, resume_from: list[str] = None) -> None:
+def run_ftt(condition: str = "undepl", configuration: str = 'tuned', n_iter: int = 30, resume_from: list[str] = None) -> None:
     """Hoisted stage 1+2 -> search (or resume) -> select -> fresh model trained on
     stage 3 for winning_epoch -> score stage 4 -> persist.
     `resume_from`: JSONL filenames under con.FTT_VAL_TRIALS. When given, the search
@@ -270,11 +270,11 @@ def run_ftt(condition: str = "udepl", configuration: str = 'tuned', n_iter: int 
     df_region_report, pooled_r2, pooled_rmse, average_rmse, average_r2, average_rmse_sq,regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
 
     # save results
-    orgpermid_year = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year']).iloc[X_test.index] 
+    orgpermid_year = ut.resolve_keys(gk, X_test.index)
     results = y_pred.to_frame('y_pred').join(y_test)
     results = results.join(orgpermid_year)
     results = results.join(geo_id)
-    results.to_parquet(con.PRED_DIR/f'predictions_{model_tag}_{condition}__n_iter_{n_iter}__seed_{con.SEED}.parquet')
+    results.to_parquet(con.PRED_DIR/f'predictions_{model_tag}_{configuration}_{condition}__n_iter_{n_iter}__seed_{con.SEED}.parquet')
 
     # stop time counter
     total_time = time.perf_counter() - start_total
@@ -329,18 +329,15 @@ def run_ftt(condition: str = "udepl", configuration: str = 'tuned', n_iter: int 
             "results": df_region_report.to_dict(orient="index"),
             },
     }
-    ## change yaml settings to process NumPy Scalars
     class LogDumper(yaml.SafeDumper):
         '''custom Dumper that tells PyYAML to serialize NumPy scalars as standard numbers and tuples as regular YAML lists'''
         pass
 
-    #### Use add_representer for exact types like tuple
     LogDumper.add_representer(
         tuple,
         lambda dumper, data: dumper.represent_sequence("tag:yaml.org,2002:seq", data),
     )
 
-    ### Use add_multi_representer for abstract base classes and subclasses
     LogDumper.add_multi_representer(
         np.floating,
         lambda dumper, data: dumper.represent_float(float(data)),
@@ -365,4 +362,3 @@ def run_ftt(condition: str = "udepl", configuration: str = 'tuned', n_iter: int 
         yaml.dump(manifest_dict, f, Dumper=LogDumper, sort_keys=False, default_flow_style=False)
 
     print(f'\n[°°°]{model_tag.upper()} regressor sucessfully tested and results saved - elapsed time: {round(total_time/60, 2)}min [°°°]')
-

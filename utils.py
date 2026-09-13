@@ -309,3 +309,38 @@ def report_metrics(per_region_metrics: tuple[pd.DataFrame, float],
 
     return df_region_report, pooled_r2, pooled_rmse, average_rmse, average_r2, average_rmse_sq,regional_bias_gap, regional_bias_gap_rmse
 
+def _panel_keys_frame() -> pd.DataFrame:
+    """Cached (orgpermid, year) view of the panel.
+ 
+    Every runner resolves test-row identities, and a depletion pass resolves twice.
+    Cached per process; restart the interpreter if the panel is rewritten mid-session.
+    """
+    global _PANEL_KEYS_CACHE
+    if _PANEL_KEYS_CACHE is None:
+        _PANEL_KEYS_CACHE = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year'])
+    return _PANEL_KEYS_CACHE
+ 
+ 
+_PANEL_KEYS_CACHE = None
+ 
+ 
+def resolve_keys(gk, row_index: pd.Index) -> pd.DataFrame:
+    """Resolve stage-slice row labels to (orgpermid, year).
+ 
+    gk: a fitted Gatekeeper instance.
+    """
+    ref = gk._preprocessed_data.loc[row_index, 'orgpermid']
+    assert ref.index.equals(row_index), "label-based key resolution lost the stage row index"
+    assert ref.notna().all(), "NaN orgpermid in the preprocessed frame"
+ 
+    panel_keys = _panel_keys_frame()
+    assert panel_keys.index.is_unique, "panel index has duplicate labels, .loc would multiply rows"
+    unknown = row_index.difference(panel_keys.index)
+    assert len(unknown) == 0, f"{len(unknown)} stage row labels absent from the panel, e.g. {list(unknown[:5])}"
+ 
+    keys = panel_keys.loc[row_index]
+    assert len(keys) == len(row_index), f"resolution returned {len(keys)} rows for {len(row_index)} requested labels"
+ 
+    mismatches = int((keys['orgpermid'].to_numpy() != ref.to_numpy()).sum())
+    assert mismatches == 0, f"{mismatches} rows where the panel and the gatekeeper frame disagree on orgpermid"
+    return keys

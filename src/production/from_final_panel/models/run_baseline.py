@@ -12,7 +12,7 @@ import yaml
 import subprocess
 
 
-def run_baseline(model_tag: str, condition: str) -> None:
+def run_baseline(model_tag: str, condition: str = 'undepl', configuration: str = 'baseline') -> None:
     """Walk the nICL stage path once and persist predictions at test grain.
 
     writes results/predictions/{model_tag}__{condition}__seed{SEED}.parquet
@@ -47,7 +47,7 @@ def run_baseline(model_tag: str, condition: str) -> None:
     df_region_report, pooled_r2, pooled_rmse, average_rmse, average_r2, average_rmse_sq,regional_bias_gap, regional_bias_gap_rmse = ut.report_metrics(metrics_per_region, metrics_pooled, metrics_average, [*con.TIER1_REGS])
 
     # save results
-    orgpermid_year = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year']).iloc[X_test.index] 
+    orgpermid_year = ut.resolve_keys(gk, X_test.index)
     results = y_pred.to_frame('y_pred').join(y_test)
     results = results.join(orgpermid_year)
     results = results.join(geo_id)
@@ -95,18 +95,18 @@ def run_baseline(model_tag: str, condition: str) -> None:
             "results": df_region_report.to_dict(orient="index"),
             },
     }
-    ## change yaml settings to process NumPy Scalars
+    
     class LogDumper(yaml.SafeDumper):
         '''custom Dumper that tells PyYAML to serialize NumPy scalars as standard numbers and tuples as regular YAML lists'''
         pass
 
-    #### Use add_representer for exact types like tuple
+    
     LogDumper.add_representer(
         tuple,
         lambda dumper, data: dumper.represent_sequence("tag:yaml.org,2002:seq", data),
     )
 
-    ### Use add_multi_representer for abstract base classes and subclasses
+    
     LogDumper.add_multi_representer(
         np.floating,
         lambda dumper, data: dumper.represent_float(float(data)),
@@ -129,4 +129,3 @@ def run_baseline(model_tag: str, condition: str) -> None:
 
     with open(con.PRED_DIR_MAN / f"results_{model_tag}_{condition}_seed_{con.SEED}.yaml", "w", encoding="utf-8") as f:
         yaml.dump(manifest_dict, f, Dumper=LogDumper, sort_keys=False, default_flow_style=False)
-

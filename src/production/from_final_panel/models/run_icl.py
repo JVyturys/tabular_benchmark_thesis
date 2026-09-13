@@ -25,28 +25,11 @@ ICL_N_ESTIMATORS = {"tabpfn3": 8, "tabicl": 8}
 IGNORE_PRETRAINING_LIMITS = True
 
 
-def _resolve_keys(gk: Gatekeeper, row_index: pd.Index) -> pd.DataFrame:
-    """Resolve stage-slice row labels to (orgpermid, year).
-    """
-    ref = gk._preprocessed_data.loc[row_index, 'orgpermid']
-    assert ref.index.equals(row_index), "label-based key resolution lost the stage row index"
-    assert ref.notna().all(), "NaN orgpermid in the preprocessed frame"
-
-    panel_keys = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year'])
-    assert row_index.max() < len(panel_keys), f"row label {row_index.max()} exceeds panel length {len(panel_keys)}"
-    positional = panel_keys.iloc[row_index]
-    assert positional.index.equals(row_index), "panel row labels are not positional"
-
-    mismatches = int((positional['orgpermid'].to_numpy() != ref.to_numpy()).sum())
-    assert mismatches == 0, f"{mismatches} rows where the panel position and the gatekeeper frame disagree on orgpermid - a merge changed the row count"
-    return positional
-
-
 def _context_row_mask(gk: Gatekeeper, X_ctx: pd.DataFrame, context_entities) -> np.ndarray:
     """Boolean mask over X_ctx rows: True where the row's entity is retained.
     """
     entities = pd.Index(pd.unique(pd.Series(list(context_entities))))
-    row_entities = _resolve_keys(gk, X_ctx.index)['orgpermid']
+    row_entities = ut.resolve_keys(gk, X_ctx.index)['orgpermid']
 
     missing = entities.difference(pd.Index(row_entities.unique()))
     assert len(missing) == 0, f"{len(missing)} draw entities absent from the stage-3 context, e.g. {list(missing[:5])}"
@@ -55,7 +38,7 @@ def _context_row_mask(gk: Gatekeeper, X_ctx: pd.DataFrame, context_entities) -> 
     assert mask.sum() > 0, "depletion draw leaves an empty context"
     assert mask.sum() < len(mask), "depletion draw retains the full context, condition is not a depletion"
 
-    print(f"    [+++] context depletion applied - entities {len(entities)}/{row_entities.nunique()}, rows {mask.sum()}/{len(mask)}")
+    print(f"    [+++] context depletion applied - draw entities {len(entities)}, context entities {row_entities.nunique()} (all regions), rows retained {mask.sum()}/{len(mask)}")
     return mask
 
 def build_model(model_tag: str, seed: int = con.SEED):
@@ -109,7 +92,7 @@ def predict_chunked(model, X_test: np.ndarray, *, batch: int) -> np.ndarray:
     assert np.isfinite(y_pred).all(), f"{(~np.isfinite(y_pred)).sum()} non-finite predictions"
     return y_pred
 
-def run_icl(model_tag: str, *, condition: str = 'udepl', configuration: str = 'default',seed: int = con.SEED, context_entities=None) -> None:
+def run_icl(model_tag: str, *, condition: str = 'undepl', configuration: str = 'default',seed: int = con.SEED, context_entities=None) -> None:
     """One scoring pass.
     context_entities=None -> full train+val context.
     context_entities=<frozen entity id set> -> a depletion condition.
@@ -125,7 +108,9 @@ def run_icl(model_tag: str, *, condition: str = 'udepl', configuration: str = 'd
 
     if context_entities is not None:
         mask = _context_row_mask(gk, X_ctx, context_entities)
-        X_ctx, y_ctx = X_ctx.loc[mask], y_ctx.loc[mask]
+        kept = X_ctx.index[mask]                      # positions -> labels, once
+        assert len(kept) == int(mask.sum()), "mask conversion to labels changed the row count"
+        X_ctx, y_ctx = X_ctx.loc[kept], y_ctx.loc[kept]
     else:
         print(f"    [+++] full context retained - rows {n_ctx_full}")
 
@@ -149,6 +134,9 @@ def run_icl(model_tag: str, *, condition: str = 'udepl', configuration: str = 'd
     assert X_test.index.equals(y_test.index), "test features and target are not aligned before coercion"
     assert X_test.index.equals(geo_id.index), "test features and geoID are not aligned before coercion"
 
+    # resolved before scoring: a key failure here costs seconds, not a scoring pass
+    keys = ut.resolve_keys(gk, X_test.index)
+
     start_score = time.perf_counter()
     y_pred = predict_chunked(model, X_test.to_numpy(dtype='float32'),
                              batch=QUERY_BATCH[model_tag])
@@ -170,13 +158,14 @@ def run_icl(model_tag: str, *, condition: str = 'udepl', configuration: str = 'd
     print(f"    [+++] saving predictions and manifest ...")
     con.PRED_DIR.mkdir(parents=True, exist_ok=True)
     con.ICL_SCORES.mkdir(parents=True, exist_ok=True)
-    keys = _resolve_keys(gk, X_test.index)
     results = y_pred.to_frame('y_pred').join(y_test)
     results = results.join(keys)
     results = results.join(geo_id)
     assert len(results) == len(y_test), "prediction table row count changed on join"
-    assert results.notna().all().all(), "NaN in the persisted prediction table"
-    results.to_parquet(con.PRED_DIR / f'predictions_{model_tag}__{condition}__seed_{seed}.parquet')
+    plumbing_cols = [c for c in results.columns if c != 'year']
+    assert results[plumbing_cols].notna().all().all(), "NaN in the persisted prediction table"
+    assert results['year'].notna().all(), f"{int(results['year'].isna().sum())} test rows carry no panel year - data fault, not plumbing"
+    results.to_parquet(con.PRED_DIR / f'predictions_{model_tag}__{configuration}__{condition}__seed_{seed}.parquet')
 
     total_time = time.perf_counter() - start_total
 
