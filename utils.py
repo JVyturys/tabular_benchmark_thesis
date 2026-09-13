@@ -284,7 +284,7 @@ def assert_ss_res_decomposition(per_region_metrics: tuple[pd.DataFrame, float], 
 def report_metrics(per_region_metrics: tuple[pd.DataFrame, float],
                    pooled_metrics: tuple[float, float],
                    macro_average_metrics: tuple[float, float, float, float],
-                   tier1_regions: list) -> tuple[pd.DataFrame, float, float, float, float, float, float]:
+                   tier1_regions: list) -> tuple[pd.DataFrame, float, float, float, float, float, float, float]:
 
     # filter data frame to tier 1 regions
     df_region_report = per_region_metrics[0].copy()
@@ -293,7 +293,7 @@ def report_metrics(per_region_metrics: tuple[pd.DataFrame, float],
     # determine tier-1 pooled R and RMSE
     sigma_y_sq_global = pooled_metrics[1]
     pooled_r2 = 1 - df_region_report['ssr_r'].sum()/(df_region_report['n_r'].sum()*sigma_y_sq_global)
-    pooled_rmse = np.sqrt((df_region_report['ssr_r'].sum()/df_region_report['n_r'].sum()))
+    pooled_rmse = np.sqrt(df_region_report['ssr_r'].sum()/df_region_report['n_r'].sum())
 
     # equal region weights vs size weights: positive -> the model predicts better on the regions that supply most of the observations than on the average region.
     regional_bias_gap = pooled_r2 - macro_average_metrics[1]

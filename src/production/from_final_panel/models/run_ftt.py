@@ -180,7 +180,7 @@ def _load_trial_logs(*filenames: str) -> list[dict]:
     return list(trials_by_id.values())
 
 
-def run_ftt(condition: str = "tuned", n_iter: int = 30, resume_from: list[str] = None) -> None:
+def run_ftt(condition: str = "udepl", configuration: str = 'tuned', n_iter: int = 30, resume_from: list[str] = None) -> None:
     """Hoisted stage 1+2 -> search (or resume) -> select -> fresh model trained on
     stage 3 for winning_epoch -> score stage 4 -> persist.
     `resume_from`: JSONL filenames under con.FTT_VAL_TRIALS. When given, the search
