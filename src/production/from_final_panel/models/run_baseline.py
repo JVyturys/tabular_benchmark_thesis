@@ -51,7 +51,7 @@ def run_baseline(model_tag: str, condition: str = 'undepl', configuration: str =
     results = y_pred.to_frame('y_pred').join(y_test)
     results = results.join(orgpermid_year)
     results = results.join(geo_id)
-    results.to_parquet(con.PRED_DIR/f'predictions_{model_tag}__{condition}__seed_{con.SEED}.parquet')
+    results.to_parquet(con.PRED_DIR/f'predictions_{model_tag}_{configuration}_{condition}_seed_{con.SEED}.parquet')
 
     # stop time counter
     total_time = time.perf_counter() - start_total
@@ -69,6 +69,7 @@ def run_baseline(model_tag: str, condition: str = 'undepl', configuration: str =
         "meta":{
             "model":model_tag,
             "condition":condition,
+            "configuration":configuration,
             "hyperparameters": rf_baseline.get_params(),
             "total processing time": total_time,
             "fit partition":X_fit.shape,
@@ -127,5 +128,5 @@ def run_baseline(model_tag: str, condition: str = 'undepl', configuration: str =
         lambda dumper, data: dumper.represent_bool(bool(data)),
     )
 
-    with open(con.PRED_DIR_MAN / f"results_{model_tag}_{condition}_seed_{con.SEED}.yaml", "w", encoding="utf-8") as f:
+    with open(con.PRED_DIR_MAN / f"results_{model_tag}_{configuration}_{condition}_seed_{con.SEED}.yaml", "w", encoding="utf-8") as f:
         yaml.dump(manifest_dict, f, Dumper=LogDumper, sort_keys=False, default_flow_style=False)

@@ -274,7 +274,7 @@ def run_ftt(condition: str = "undepl", configuration: str = 'tuned', n_iter: int
     results = y_pred.to_frame('y_pred').join(y_test)
     results = results.join(orgpermid_year)
     results = results.join(geo_id)
-    results.to_parquet(con.PRED_DIR/f'predictions_{model_tag}_{configuration}_{condition}__n_iter_{n_iter}__seed_{con.SEED}.parquet')
+    results.to_parquet(con.PRED_DIR/f'predictions_{model_tag}_{configuration}_{condition}_n_iter_{n_iter}_seed_{con.SEED}.parquet')
 
     # stop time counter
     total_time = time.perf_counter() - start_total
