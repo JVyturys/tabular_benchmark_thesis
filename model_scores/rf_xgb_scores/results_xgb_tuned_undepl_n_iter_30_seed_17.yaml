@@ -16,7 +16,6 @@ meta:
     enable_categorical: false
     eval_metric: null
     feature_types: null
-    feature_weights: null
     gamma: null
     grow_policy: null
     importance_type: null
@@ -315,7 +314,7 @@ meta:
       reg_lambda: 0.28870851310086737
       subsample: 0.6529939121860979
     - 0.15951140557547275
-  total processing time: 351.8986944677308
+  total processing time: 120.90387138118967
   fit partition:
   - 50381
   - 125
@@ -328,8 +327,8 @@ meta:
   test partition:
   - 25221
   - 125
-  git_commit: c51aac2
-  timestamp: '2026-09-13T23:28:46.783049'
+  git_commit: '4257611'
+  timestamp: '2026-09-14T04:34:42.014617'
   used seed: 17
 metrics:
   pooled_RMSE: 0.15962007155605193

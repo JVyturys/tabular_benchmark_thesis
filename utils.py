@@ -327,20 +327,32 @@ _PANEL_KEYS_CACHE = None
 def resolve_keys(gk, row_index: pd.Index) -> pd.DataFrame:
     """Resolve stage-slice row labels to (orgpermid, year).
  
-    gk: a fitted Gatekeeper instance.
+    gk: a constructed Gatekeeper instance.
     """
-    ref = gk._preprocessed_data.loc[row_index, 'orgpermid']
-    assert ref.index.equals(row_index), "label-based key resolution lost the stage row index"
-    assert ref.notna().all(), "NaN orgpermid in the preprocessed frame"
- 
     panel_keys = _panel_keys_frame()
-    assert panel_keys.index.is_unique, "panel index has duplicate labels, .loc would multiply rows"
-    unknown = row_index.difference(panel_keys.index)
-    assert len(unknown) == 0, f"{len(unknown)} stage row labels absent from the panel, e.g. {list(unknown[:5])}"
  
-    keys = panel_keys.loc[row_index]
-    assert len(keys) == len(row_index), f"resolution returned {len(keys)} rows for {len(row_index)} requested labels"
+    # -- premise: the reference merges are row- and order-preserving
+    assert gk.geo_id['orgpermid'].is_unique, \
+        "ref_geo_table duplicates orgpermid - the left merge is not row-preserving, stage labels are not panel positions"
+    assert gk.split['orgpermid'].is_unique, \
+        "split table duplicates orgpermid - the left merge is not row-preserving, stage labels are not panel positions"
  
+    # -- premise: the requested labels are usable panel positions
+    assert row_index.is_unique, "stage row labels contain duplicates"
+    assert row_index.min() >= 0 and row_index.max() < len(panel_keys), \
+        f"stage row position out of range - saw [{row_index.min()}, {row_index.max()}] against a panel of {len(panel_keys)} rows"
+ 
+    # -- positional resolution, then re-label to the stage slice
+    keys = panel_keys.take(np.asarray(row_index)).set_axis(row_index)
+    assert len(keys) == len(row_index), \
+        f"resolution returned {len(keys)} rows for {len(row_index)} requested positions"
+ 
+    # -- verification: two independently derived sources must agree on identity
+    ref = gk._preprocessed_data.loc[row_index, 'orgpermid']
+    assert ref.index.equals(row_index), "gatekeeper lookup lost the stage row index"
+    assert ref.notna().all(), "NaN orgpermid in the preprocessed frame"
     mismatches = int((keys['orgpermid'].to_numpy() != ref.to_numpy()).sum())
-    assert mismatches == 0, f"{mismatches} rows where the panel and the gatekeeper frame disagree on orgpermid"
+    assert mismatches == 0, \
+        f"{mismatches} rows where the panel position and the gatekeeper row disagree on orgpermid - a reference merge changed the row set or order"
+ 
     return keys
