@@ -1,0 +1,1 @@
+{"timestamp": "2026-09-16T18:06:14.528427", "model": "tabpfn3", "level": 350, "draw": 0, "tag": "depl_L350_d0", "context_rows_retained": 41518, "context_entities_retained": 4903, "build_commit": "bced3bd", "configuration": "default", "status": "complete", "duration_s": 3013.4, "runner_commit": "3ec5009"}
