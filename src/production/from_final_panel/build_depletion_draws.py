@@ -21,7 +21,7 @@ import subprocess
 from datetime import datetime
 from scipy.stats import wasserstein_distance
 
-DEPLETION_GRID: dict[int, int] = {8000: 2, 4000: 3, 2000: 3, 1000: 5, 400: 5}
+DEPLETION_GRID: dict[int, int] = {8000: 2, 4000: 3, 2000: 3, 1000: 5, 350: 5}
 N_STRATA: int = 4
 ANCHOR_REGION: int = 100089
 
