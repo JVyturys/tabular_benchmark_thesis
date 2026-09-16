@@ -22,6 +22,13 @@ REF_GEOGRAPHY = FINAL_DIR / "ref_geo_table.parquet"
 REF_PARENT =  FINAL_DIR / "ref_parent_table.parquet"
 REF_PARENT_ENT_TYPE = FINAL_DIR / "ref_parent_ent_type.parquet"
 
+## DEPLETION DRAWS
+DEPLETION_DRAWS = FINAL_DIR / "depletion_draws.parquet"
+DEPLETION_COUNTS = FINAL_DIR / "depletion_counts.parquet"
+CONTEXT_ROWS = 58806
+TRIPWIRE_MEAN_SE_FACTOR = 4
+TRIPWIRE_STD_RATIO = (0.5, 2.0)
+
 ## RESULTS
 RESULTS_DIR = PROJECT_ROOT / "results"
 PRED_DIR = RESULTS_DIR / "predictions" 
@@ -36,6 +43,8 @@ VIZ_CUTOFF = VIZ / "cutoff_kneedle.png"
 VIZ_NAN_SHARE = VIZ / "total_nan_shares_per_region.png"
 VIZ_USABLE_DROPPED = VIZ / "dropped_usable_features.png"
 VIZ_RMSE = VIZ / "ft_epoch_rmse_curve.png"
+
+
 
 ## SPLIT PARTITIONS
 SPLIT = FINAL_DIR / "split.parquet"
