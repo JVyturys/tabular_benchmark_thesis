@@ -212,7 +212,6 @@ def _claim_path(model_tag: str, condition: str, configuration: str, seed: int):
 
 def _claim_condition(model_tag: str, condition: str, configuration: str, seed: int) -> bool:
     """Atomically claim a condition. False if another process holds it.
-
     """
     path = _claim_path(model_tag, condition, configuration, seed)
     payload = json.dumps({'pid': os.getpid(), 'host': socket.gethostname(),
@@ -221,9 +220,12 @@ def _claim_condition(model_tag: str, condition: str, configuration: str, seed: i
     try:
         handle = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError:
-        with open(path, 'r', encoding='utf-8') as f:
-            held = json.load(f)
-        print(f"    [+++] skip {model_tag} {condition} - held by pid {held.get('pid')}@{held.get('host')} since {held.get('claimed_at')}")
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                held = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            held = {}
+        print(f"    [+++] skip {model_tag} {condition} - held by pid {held.get('pid', '?')}@{held.get('host', '?')} since {held.get('claimed_at', 'unknown')}")
         print(f"      [---] if stale, remove by hand: rm {path}")
         return False
     with os.fdopen(handle, 'w') as f:
