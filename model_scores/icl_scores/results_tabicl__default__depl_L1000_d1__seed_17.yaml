@@ -1,0 +1,150 @@
+meta:
+  model: tabicl
+  condition: depl_L1000_d1
+  configuration: default
+  hyperparameters:
+    allow_auto_download: true
+    batch_size: 8
+    checkpoint_version: tabicl-regressor-v2-20260212.ckpt
+    device: cuda
+    disk_offload_dir: null
+    feat_shuffle_method: latin
+    inference_config: null
+    kv_cache: false
+    model_path: null
+    n_estimators: 8
+    n_jobs: null
+    norm_methods: null
+    offload_mode: auto
+    outlier_threshold: 4.0
+    random_state: 17
+    use_amp: auto
+    use_fa3: auto
+    verbose: false
+  device: cuda
+  ignore_pretraining_limits: true
+  checkpoint_max_samples: null
+  query_batch: 256
+  context rows: 42163
+  context rows full: 58806
+  context entities: 4969
+  context storage time: 3.412466294001206
+  scoring time: 2735.276057042007
+  total processing time: 2740.704920700009
+  test partition:
+  - 25221
+  - 125
+  git_commit: 18d798b
+  timestamp: '2026-09-17T03:21:23.760589'
+  used seed: 17
+metrics:
+  pooled_RMSE: 0.17296143831630065
+  pooled R2: 0.2561333993896917
+  average_RMSE: 0.17445583344202975
+  average R2 (global denominator): 0.23425635542454054
+  average_rmse_sq: 0.17548639763178922
+  regional bias gap: 0.021877043965151166
+  regional bias gap rmse: 0.002524959315488573
+region metrics:
+  shape:
+  - 13
+  - 6
+  columns:
+  - rmse_r
+  - ssr_r
+  - n_r
+  - denominator_r
+  - r_sq
+  - r_sq_reg
+  results:
+    100277:
+      rmse_r: 0.17695804556096673
+      ssr_r: 16.032844743043675
+      n_r: 512
+      denominator_r: 18.439336333394568
+      r_sq: 0.22135928490554402
+      r_sq_reg: 0.1305085794217341
+    100090:
+      rmse_r: 0.17299072949193786
+      ssr_r: 12.269574920962658
+      n_r: 410
+      denominator_r: 13.945208355868715
+      r_sq: 0.2558814290958322
+      r_sq_reg: 0.1201583649484077
+    100334:
+      rmse_r: 0.16227996737724504
+      ssr_r: 71.34094018259887
+      n_r: 2709
+      denominator_r: 111.72032985558971
+      r_sq: 0.34517340925396867
+      r_sq_reg: 0.36143278242362387
+    103384:
+      rmse_r: 0.19987119339288198
+      ssr_r: 51.61345418119693
+      n_r: 1292
+      denominator_r: 60.99048948949386
+      r_sq: 0.006662355345793514
+      r_sq_reg: 0.1537458608183856
+    100024:
+      rmse_r: 0.14673367928325437
+      ssr_r: 40.41326023777379
+      n_r: 1877
+      denominator_r: 71.26574566549502
+      r_sq: 0.46462745240128567
+      r_sq_reg: 0.4329216671994941
+    100279:
+      rmse_r: 0.1873324222017878
+      ssr_r: 33.26857771477346
+      n_r: 948
+      denominator_r: 36.79260615992481
+      r_sq: 0.12738559031906127
+      r_sq_reg: 0.09578088678561159
+    100089:
+      rmse_r: 0.18593812646439972
+      ssr_r: 261.7866566030458
+      n_r: 7572
+      denominator_r: 301.6238204594612
+      r_sq: 0.14032680697233146
+      r_sq_reg: 0.13207565568174207
+    100219:
+      rmse_r: 0.1603431664421373
+      ssr_r: 43.21839405250548
+      n_r: 1681
+      denominator_r: 53.784547110776394
+      r_sq: 0.3607107601767624
+      r_sq_reg: 0.19645332397256265
+    100223:
+      rmse_r: 0.14989688694079153
+      ssr_r: 81.54027939706727
+      n_r: 3629
+      denominator_r: 122.56462111040743
+      r_sq: 0.4412960906595338
+      r_sq_reg: 0.33471601626692116
+    103401:
+      rmse_r: 0.20787101867271823
+      ssr_r: 43.469622566457765
+      n_r: 1006
+      denominator_r: 58.23092302537273
+      r_sq: -0.0744454517849027
+      r_sq_reg: 0.25349590375689357
+    100276:
+      rmse_r: 0.1736523244172553
+      ssr_r: 62.48142889486851
+      n_r: 2072
+      denominator_r: 77.89480723341285
+      r_sq: 0.25017885219346914
+      r_sq_reg: 0.1978742728299968
+    100218:
+      rmse_r: 0.19310303933150527
+      ssr_r: 5.854339056453186
+      n_r: 157
+      denominator_r: 6.578062111850989
+      r_sq: 0.0727972694308775
+      r_sq_reg: 0.11002070869685909
+    100278:
+      rmse_r: 0.1509552351695055
+      ssr_r: 29.897177728905884
+      n_r: 1312
+      denominator_r: 29.27066701654164
+      r_sq: 0.43337877154947
+      r_sq_reg: -0.02140404631060111

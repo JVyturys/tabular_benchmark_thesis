@@ -1,0 +1,150 @@
+meta:
+  model: tabicl
+  condition: depl_L4000_d0
+  configuration: default
+  hyperparameters:
+    allow_auto_download: true
+    batch_size: 8
+    checkpoint_version: tabicl-regressor-v2-20260212.ckpt
+    device: cuda
+    disk_offload_dir: null
+    feat_shuffle_method: latin
+    inference_config: null
+    kv_cache: false
+    model_path: null
+    n_estimators: 8
+    n_jobs: null
+    norm_methods: null
+    offload_mode: auto
+    outlier_threshold: 4.0
+    random_state: 17
+    use_amp: auto
+    use_fa3: auto
+    verbose: false
+  device: cuda
+  ignore_pretraining_limits: true
+  checkpoint_max_samples: null
+  query_batch: 256
+  context rows: 45172
+  context rows full: 58806
+  context entities: 5306
+  context storage time: 4.1093313849996775
+  scoring time: 2978.219368307997
+  total processing time: 2984.377190489002
+  test partition:
+  - 25221
+  - 125
+  git_commit: 18d798b
+  timestamp: '2026-09-17T14:52:01.835525'
+  used seed: 17
+metrics:
+  pooled_RMSE: 0.16939101161132064
+  pooled R2: 0.2865275523965314
+  average_RMSE: 0.1738107550912223
+  average R2 (global denominator): 0.23977752739772631
+  average_rmse_sq: 0.17485260629190794
+  regional bias gap: 0.04675002499880507
+  regional bias gap rmse: 0.005461594680587295
+region metrics:
+  shape:
+  - 13
+  - 6
+  columns:
+  - rmse_r
+  - ssr_r
+  - n_r
+  - denominator_r
+  - r_sq
+  - r_sq_reg
+  results:
+    100277:
+      rmse_r: 0.17783654138930688
+      ssr_r: 16.192427752095057
+      n_r: 512
+      denominator_r: 18.439336333394568
+      r_sq: 0.213609080230319
+      r_sq_reg: 0.12185409174571249
+    100090:
+      rmse_r: 0.1723408076031278
+      ssr_r: 12.177555125772312
+      n_r: 410
+      denominator_r: 13.945208355868715
+      r_sq: 0.2614621960688548
+      r_sq_reg: 0.12675703259410265
+    100334:
+      rmse_r: 0.16166394729501313
+      ssr_r: 70.80034309520796
+      n_r: 2709
+      denominator_r: 111.72032985558971
+      r_sq: 0.3501354597511638
+      r_sq_reg: 0.36627162498781685
+    103384:
+      rmse_r: 0.20067965303531926
+      ssr_r: 52.03184149994995
+      n_r: 1292
+      denominator_r: 60.99048948949386
+      r_sq: -0.0013898062534727362
+      r_sq_reg: 0.1468859827905975
+    100024:
+      rmse_r: 0.14721903314916354
+      ssr_r: 40.68105386501996
+      n_r: 1877
+      denominator_r: 71.26574566549502
+      r_sq: 0.4610798703550474
+      r_sq_reg: 0.42916399056613463
+    100279:
+      rmse_r: 0.1871904950381013
+      ssr_r: 33.218186798113734
+      n_r: 948
+      denominator_r: 36.79260615992481
+      r_sq: 0.12870731318834938
+      r_sq_reg: 0.09715048035125051
+    100089:
+      rmse_r: 0.17487265692261378
+      ssr_r: 231.55513816582692
+      n_r: 7572
+      denominator_r: 301.6238204594612
+      r_sq: 0.23960316552412342
+      r_sq_reg: 0.23230486964490793
+    100219:
+      rmse_r: 0.1606216986823718
+      ssr_r: 43.368673877273494
+      n_r: 1681
+      denominator_r: 53.784547110776394
+      r_sq: 0.3584878114290603
+      r_sq_reg: 0.19365921613228476
+    100223:
+      rmse_r: 0.15006045731994438
+      ssr_r: 81.71833314853612
+      n_r: 3629
+      denominator_r: 122.56462111040743
+      r_sq: 0.4400760883765644
+      r_sq_reg: 0.3332632825999321
+    103401:
+      rmse_r: 0.20598662540771004
+      ssr_r: 42.68507278593739
+      n_r: 1006
+      denominator_r: 58.23092302537273
+      r_sq: -0.05505361229767858
+      r_sq_reg: 0.2669689819730593
+    100276:
+      rmse_r: 0.17372214325025695
+      ssr_r: 62.531681690918916
+      n_r: 2072
+      denominator_r: 77.89480723341285
+      r_sq: 0.2495757832515214
+      r_sq_reg: 0.1972291361663958
+    100218:
+      rmse_r: 0.19789935184078053
+      ssr_r: 6.148772093063163
+      n_r: 157
+      denominator_r: 6.578062111850989
+      r_sq: 0.02616534174749441
+      r_sq_reg: 0.06526086429229982
+    100278:
+      rmse_r: 0.14944640525218042
+      ssr_r: 29.302507192152213
+      n_r: 1312
+      denominator_r: 29.27066701654164
+      r_sq: 0.4446491647990951
+      r_sq_reg: -0.001087784422288074

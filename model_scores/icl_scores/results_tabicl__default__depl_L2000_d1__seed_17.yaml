@@ -1,0 +1,150 @@
+meta:
+  model: tabicl
+  condition: depl_L2000_d1
+  configuration: default
+  hyperparameters:
+    allow_auto_download: true
+    batch_size: 8
+    checkpoint_version: tabicl-regressor-v2-20260212.ckpt
+    device: cuda
+    disk_offload_dir: null
+    feat_shuffle_method: latin
+    inference_config: null
+    kv_cache: false
+    model_path: null
+    n_estimators: 8
+    n_jobs: null
+    norm_methods: null
+    offload_mode: auto
+    outlier_threshold: 4.0
+    random_state: 17
+    use_amp: auto
+    use_fa3: auto
+    verbose: false
+  device: cuda
+  ignore_pretraining_limits: true
+  checkpoint_max_samples: null
+  query_batch: 256
+  context rows: 43161
+  context rows full: 58806
+  context entities: 5083
+  context storage time: 3.9417795250192285
+  scoring time: 2808.736686720018
+  total processing time: 2815.2327313610003
+  test partition:
+  - 25221
+  - 125
+  git_commit: 18d798b
+  timestamp: '2026-09-17T11:29:55.200230'
+  used seed: 17
+metrics:
+  pooled_RMSE: 0.1702837035316249
+  pooled R2: 0.27898772668317506
+  average_RMSE: 0.17387101131679847
+  average R2 (global denominator): 0.2394625043657865
+  average_rmse_sq: 0.17488883048615686
+  regional bias gap: 0.03952522231738856
+  regional bias gap rmse: 0.004605126954531968
+region metrics:
+  shape:
+  - 13
+  - 6
+  columns:
+  - rmse_r
+  - ssr_r
+  - n_r
+  - denominator_r
+  - r_sq
+  - r_sq_reg
+  results:
+    100277:
+      rmse_r: 0.17666589077022424
+      ssr_r: 15.979948524358043
+      n_r: 512
+      denominator_r: 18.439336333394568
+      r_sq: 0.22392820827524373
+      r_sq_reg: 0.13337724116363392
+    100090:
+      rmse_r: 0.17603328553585393
+      ssr_r: 12.704964222784469
+      n_r: 410
+      denominator_r: 13.945208355868715
+      r_sq: 0.22947617323769443
+      r_sq_reg: 0.08893693815354875
+    100334:
+      rmse_r: 0.16221395284778936
+      ssr_r: 71.28290984444959
+      n_r: 2709
+      denominator_r: 111.72032985558971
+      r_sq: 0.34570606004877
+      r_sq_reg: 0.3619522074756648
+    103384:
+      rmse_r: 0.20002871294501587
+      ssr_r: 51.6948399151519
+      n_r: 1292
+      denominator_r: 60.99048948949386
+      r_sq: 0.005096028996243618
+      r_sq_reg: 0.15241146041208953
+    100024:
+      rmse_r: 0.14697540139944243
+      ssr_r: 40.5465196932216
+      n_r: 1877
+      denominator_r: 71.26574566549502
+      r_sq: 0.4628621047471999
+      r_sq_reg: 0.4310517722842947
+    100279:
+      rmse_r: 0.18690323643010373
+      ssr_r: 33.116313159068795
+      n_r: 948
+      denominator_r: 36.79260615992481
+      r_sq: 0.13137939632215212
+      r_sq_reg: 0.09991934207858044
+    100089:
+      rmse_r: 0.1781270184193056
+      ssr_r: 240.25376507988577
+      n_r: 7572
+      denominator_r: 301.6238204594612
+      r_sq: 0.21103801070989447
+      r_sq_reg: 0.20346554620948332
+    100219:
+      rmse_r: 0.1600744811951329
+      ssr_r: 43.0736742497467
+      n_r: 1681
+      denominator_r: 53.784547110776394
+      r_sq: 0.3628514647244748
+      r_sq_reg: 0.1991440559863641
+    100223:
+      rmse_r: 0.14996626202375102
+      ssr_r: 81.61577359597077
+      n_r: 3629
+      denominator_r: 122.56462111040743
+      r_sq: 0.4407788137459422
+      r_sq_reg: 0.3341000620199326
+    103401:
+      rmse_r: 0.20630622521246
+      ssr_r: 42.81763211278275
+      n_r: 1006
+      denominator_r: 58.23092302537273
+      r_sq: -0.05833010188768872
+      r_sq_reg: 0.26469253983616237
+    100276:
+      rmse_r: 0.1726183037433554
+      ssr_r: 61.73954724714741
+      n_r: 2072
+      denominator_r: 77.89480723341285
+      r_sq: 0.2590819544187213
+      r_sq_reg: 0.20739842051160085
+    100218:
+      rmse_r: 0.19511587164170938
+      ssr_r: 5.97702192854113
+      n_r: 157
+      denominator_r: 6.578062111850989
+      r_sq: 0.053366913092254276
+      r_sq_reg: 0.09137040257297502
+    100278:
+      rmse_r: 0.1492945049542364
+      ssr_r: 29.242970162904044
+      n_r: 1312
+      denominator_r: 29.27066701654164
+      r_sq: 0.44577753032432255
+      r_sq_reg: 0.0009462324046781712
