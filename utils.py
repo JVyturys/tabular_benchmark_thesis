@@ -4,7 +4,9 @@ Define functions for procduction branch.
 '''
 ##################################################
 import pandas as pd, numpy as np, config as con, matplotlib.pyplot as plt
-import math
+import math, subprocess
+from importlib import metadata
+from pathlib import Path
 from sklearn.base import BaseEstimator
 
 ### feature cut-off helpers ---------------------------------------------------------
@@ -317,7 +319,13 @@ def _panel_keys_frame() -> pd.DataFrame:
     """
     global _PANEL_KEYS_CACHE
     if _PANEL_KEYS_CACHE is None:
-        _PANEL_KEYS_CACHE = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year'])
+        frame = pd.read_parquet(con.PANEL, columns=['orgpermid', 'year'])
+        year = frame['year']
+        assert year.notna().all(), f"{int(year.isna().sum())} panel rows carry no year"
+        year_int = year.astype('int64')
+        assert (year_int.astype(year.dtype) == year).all(), f"year ({year.dtype}) does not cast to int64 losslessly"
+        frame['year'] = year_int
+        _PANEL_KEYS_CACHE = frame
     return _PANEL_KEYS_CACHE
  
  
@@ -331,23 +339,20 @@ def resolve_keys(gk, row_index: pd.Index) -> pd.DataFrame:
     """
     panel_keys = _panel_keys_frame()
  
-    # -- premise: the reference merges are row- and order-preserving
     assert gk.geo_id['orgpermid'].is_unique, \
         "ref_geo_table duplicates orgpermid - the left merge is not row-preserving, stage labels are not panel positions"
     assert gk.split['orgpermid'].is_unique, \
         "split table duplicates orgpermid - the left merge is not row-preserving, stage labels are not panel positions"
  
-    # -- premise: the requested labels are usable panel positions
     assert row_index.is_unique, "stage row labels contain duplicates"
     assert row_index.min() >= 0 and row_index.max() < len(panel_keys), \
         f"stage row position out of range - saw [{row_index.min()}, {row_index.max()}] against a panel of {len(panel_keys)} rows"
  
-    # -- positional resolution, then re-label to the stage slice
     keys = panel_keys.take(np.asarray(row_index)).set_axis(row_index)
     assert len(keys) == len(row_index), \
         f"resolution returned {len(keys)} rows for {len(row_index)} requested positions"
  
-    # -- verification: two independently derived sources must agree on identity
+    # -- two independently derived sources must agree on identity
     ref = gk._preprocessed_data.loc[row_index, 'orgpermid']
     assert ref.index.equals(row_index), "gatekeeper lookup lost the stage row index"
     assert ref.notna().all(), "NaN orgpermid in the preprocessed frame"
@@ -356,3 +361,21 @@ def resolve_keys(gk, row_index: pd.Index) -> pd.DataFrame:
         f"{mismatches} rows where the panel position and the gatekeeper row disagree on orgpermid - a reference merge changed the row set or order"
  
     return keys
+
+
+### provenance helpers ---------------------------------------------------------
+def git_state() -> dict:
+    """Short HEAD hash of the project repo; refuses uncommitted changes outside the score directories."""
+    git = lambda *args: subprocess.check_output(['git', *args], cwd=con.PROJECT_ROOT, text=True).strip()
+    toplevel = Path(git('rev-parse', '--show-toplevel')).resolve()
+    assert toplevel == con.PROJECT_ROOT.resolve(), f"git resolves to {toplevel}, project root is {con.PROJECT_ROOT}"
+    excluded = [f":(exclude){d.resolve().relative_to(toplevel).as_posix()}"
+                for d in (con.PRED_DIR_MAN, con.FTT_VAL_TRIALS, con.ICL_SCORES)]
+    dirty = git('status', '--porcelain', '--', '.', *excluded)
+    assert not dirty, f"uncommitted changes in the working tree - commit before a run of record:\n{dirty}"
+    return {'git_commit': git('rev-parse', '--short', 'HEAD'), 'git_dirty': False}
+
+
+def library_versions(packages) -> dict:
+    """Installed distribution versions; fails if a package is absent."""
+    return {package: metadata.version(package) for package in packages}

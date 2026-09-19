@@ -7,7 +7,7 @@ RMSE and the selected count is carried to the stage-3 refit unchanged.
 """
 import config as con, utils as ut, pandas as pd, numpy as np, torch.nn as nn, torch.optim as optim, torch.nn.functional as F
 import matplotlib.pyplot as plt
-import torch, rtdl, time, yaml, subprocess
+import torch, rtdl_revisiting_models, time, yaml, subprocess
 import json
 from stageguard import Gatekeeper
 from sklearn.model_selection import ParameterSampler
@@ -15,11 +15,14 @@ from sklearn.metrics import root_mean_squared_error as rmse
 from datetime import datetime
 from scipy.stats import loguniform, uniform, randint
 
+LIBRARIES: tuple[str, ...] = ('numpy', 'pandas', 'scikit-learn', 'torch', 'rtdl-revisiting-models')
+
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MAX_EPOCHS = 800
 PATIENCE = 50   
 BATCH_SIZE = 256   
+ATTENTION_N_HEADS = 8
 SEARCH_SPACE = {
     # architecture Defaults
     'n_blocks': randint(1, 7),  # scipy's randint is exclusive at the upper bound (1 to 6)
@@ -37,11 +40,10 @@ SEARCH_SPACE = {
 def build_model(X_fit, params: dict) -> torch.nn.Module:
     """Return an FT-Transformer on DEVICE configured with `params`.
     Fixed, non-searched settings."""
-    arch_params = {k: params[k] for k in ['d_token', 'n_blocks', 'attention_dropout', 'ffn_dropout', 'residual_dropout']}
-    arch_params['ffn_d_hidden'] = int(params['d_token'] * params['ffn_d_hidden_multiplier'])
-    return rtdl.FTTransformer.make_baseline(n_num_features=X_fit.shape[1],
-                                        cat_cardinalities=None, d_out=1,
-                                          **arch_params).to(DEVICE)
+    arch_params = {k: params[k] for k in ['n_blocks', 'attention_dropout', 'ffn_d_hidden_multiplier', 'ffn_dropout', 'residual_dropout']}
+    return rtdl_revisiting_models.FTTransformer(n_cont_features=X_fit.shape[1], cat_cardinalities=[], d_out=1,
+                                                d_block=params['d_token'], attention_n_heads=ATTENTION_N_HEADS,
+                                                ffn_d_hidden=None, **arch_params).to(DEVICE)
 
 def _train_one_epoch(model, X_t, y_t, optimizer) -> None:
     """One pass over the training rows in shuffled batches of BATCH_SIZE."""
@@ -65,7 +67,7 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
     opt_params = {k: params[k] for k in ['lr', 'weight_decay']}
 
     # initiate optimizer
-    optimizer = optim.AdamW(model.optimization_param_groups(), **opt_params)
+    optimizer = optim.AdamW(model.make_parameter_groups(), **opt_params)
 
     # transform partitions into torch friendly tensors
     y_fit_t = y_fit.to_frame('y_fit')
@@ -186,6 +188,7 @@ def run_ftt(condition: str = "undepl", configuration: str = 'tuned', n_iter: int
     `resume_from`: JSONL filenames under con.FTT_VAL_TRIALS. When given, the search
     is skipped and those logs supply the trials. n_iter still sets the refit seed."""
     model_tag = "ftt"
+    git = ut.git_state()
     start_total = time.perf_counter()
     gk = Gatekeeper(model="nICL")
     X_fit, y_fit = gk.stage_one_data()
@@ -232,7 +235,7 @@ def run_ftt(condition: str = "undepl", configuration: str = 'tuned', n_iter: int
 
     ## slice optimization relevant parameters 
     opt_params = {k: winning_params[k] for k in ['lr', 'weight_decay']}
-    optimizer = optim.AdamW(model.optimization_param_groups(), **opt_params)
+    optimizer = optim.AdamW(model.make_parameter_groups(), **opt_params)
 
     ## refit on new partition and tuned parametrization 
     print(f'          [>] fitting on training (fit+val) partition...')
@@ -280,13 +283,6 @@ def run_ftt(condition: str = "undepl", configuration: str = 'tuned', n_iter: int
     total_time = time.perf_counter() - start_total
 
     # log metrics 
-    ## definer helper for git hash 
-    def get_git_revision_hash(short: bool = True) -> str:
-        cmd = ["git", "rev-parse", "--short", "HEAD"] if short else ["git", "rev-parse", "HEAD"]
-        try:
-            return subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode("ascii").strip()
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            return "unknown"
         
     ## log parameters & results
     manifest_dict = {
@@ -308,7 +304,7 @@ def run_ftt(condition: str = "undepl", configuration: str = 'tuned', n_iter: int
             "val partition":X_val.shape,
             "train partition":X_tr.shape,
             "test partition":X_test.shape,
-            "git_commit": get_git_revision_hash(short=True),
+            **git, "library versions": ut.library_versions(LIBRARIES),
             "timestamp": datetime.now().isoformat(),
             "used seed": con.SEED
 

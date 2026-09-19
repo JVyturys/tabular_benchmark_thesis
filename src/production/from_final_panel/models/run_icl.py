@@ -17,6 +17,11 @@ from stageguard import Gatekeeper
 from tabpfn import TabPFNRegressor
 from tabicl import TabICLRegressor
 
+LIBRARIES: dict[str, tuple[str, ...]] = {
+    'tabpfn3': ('numpy', 'pandas', 'torch', 'tabpfn'),
+    'tabicl': ('numpy', 'pandas', 'torch', 'tabicl'),
+}
+
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -98,6 +103,7 @@ def run_icl(model_tag: str, *, condition: str = 'undepl', configuration: str = '
     context_entities=<frozen entity id set> -> a depletion condition.
     """
     assert model_tag in QUERY_BATCH, f"expected model 'tabpfn3' or 'tabicl', saw {model_tag}"
+    git = ut.git_state()
     start_total = time.perf_counter()
 
     print(f"\n[°°°] in-context pass - model {model_tag}, condition {condition}, seed {seed} [°°°]\n")
@@ -169,12 +175,6 @@ def run_icl(model_tag: str, *, condition: str = 'undepl', configuration: str = '
 
     total_time = time.perf_counter() - start_total
 
-    def get_git_revision_hash(short: bool = True) -> str:
-        cmd = ["git", "rev-parse", "--short", "HEAD"] if short else ["git", "rev-parse", "HEAD"]
-        try:
-            return subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode("ascii").strip()
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            return "unknown"
 
     manifest_dict = {
         "meta": {
@@ -193,7 +193,7 @@ def run_icl(model_tag: str, *, condition: str = 'undepl', configuration: str = '
             "scoring time": score_time,
             "total processing time": total_time,
             "test partition": X_test.shape,
-            "git_commit": get_git_revision_hash(short=True),
+            **git, "library versions": ut.library_versions(LIBRARIES[model_tag]),
             "timestamp": datetime.now().isoformat(),
             "used seed": seed
         },

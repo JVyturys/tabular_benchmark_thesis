@@ -1,6 +1,6 @@
 ##################################################
 '''
-src.production.from_final_panel.models.run_depletion_grid
+src.production.from_final_panel.models.run_ICL_depletion_grid
 
 input:      depletion_draws.parquet, depletion_counts.parquet, plus every input
             run_icl consumes (panel.parquet, split.parquet, ref_geo_table.parquet,

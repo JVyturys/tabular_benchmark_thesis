@@ -11,6 +11,8 @@ import yaml
 
 import subprocess
 
+LIBRARIES: tuple[str, ...] = ('numpy', 'pandas', 'scikit-learn')
+
 
 def run_baseline(model_tag: str, condition: str = 'undepl', configuration: str = 'baseline') -> None:
     """Walk the nICL stage path once and persist predictions at test grain.
@@ -20,6 +22,7 @@ def run_baseline(model_tag: str, condition: str = 'undepl', configuration: str =
     """
 
     # start time counter 
+    git = ut.git_state()
     start_total = time.perf_counter()
 
     # initialize gatekeeper
@@ -57,13 +60,6 @@ def run_baseline(model_tag: str, condition: str = 'undepl', configuration: str =
     total_time = time.perf_counter() - start_total
 
     # log metrics 
-    ## definer helper for git hash 
-    def get_git_revision_hash(short: bool = True) -> str:
-        cmd = ["git", "rev-parse", "--short", "HEAD"] if short else ["git", "rev-parse", "HEAD"]
-        try:
-            return subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode("ascii").strip()
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            return "unknown"
     ## log parameters & results
     manifest_dict = {
         "meta":{
@@ -76,7 +72,7 @@ def run_baseline(model_tag: str, condition: str = 'undepl', configuration: str =
             "val partition":X_val.shape,
             "train partition":X_tr.shape,
             "test partition":X_test.shape,
-            "git_commit": get_git_revision_hash(short=True),
+            **git, "library versions": ut.library_versions(LIBRARIES),
             "timestamp": datetime.now().isoformat(),
 
         },

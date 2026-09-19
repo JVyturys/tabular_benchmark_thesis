@@ -12,6 +12,11 @@ from sklearn.model_selection import ParameterSampler
 from scipy.stats import loguniform, uniform
 from datetime import datetime
 
+LIBRARIES: dict[str, tuple[str, ...]] = {
+    'rf': ('numpy', 'pandas', 'scikit-learn'),
+    'xgb': ('numpy', 'pandas', 'scikit-learn', 'xgboost'),
+}
+
 
 SEARCH_SPACES = {
     "rf":  {'max_features':(0.05, 0.1, 0.2, 0.33, 0.5, 0.75, 1.0),
@@ -74,6 +79,7 @@ def search(model_tag, X_fit, y_fit, X_val, y_val, n_iter, seed=con.SEED) -> tupl
 def run_tuned(model_tag: str, condition: str = "undepl", configuration: str = 'tuned', n_iter: int = 30) -> None:
     """Hoisted stage 1+2 -> search → refit on stage 3 -> score stage 4 -> persist."""
     # start time counter 
+    git = ut.git_state()
     start_total = time.perf_counter()
     gk = Gatekeeper(model="nICL")
 
@@ -125,13 +131,6 @@ def run_tuned(model_tag: str, condition: str = "undepl", configuration: str = 't
     total_time = time.perf_counter() - start_total
 
     # log metrics 
-    ## definer helper for git hash 
-    def get_git_revision_hash(short: bool = True) -> str:
-        cmd = ["git", "rev-parse", "--short", "HEAD"] if short else ["git", "rev-parse", "HEAD"]
-        try:
-            return subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode("ascii").strip()
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            return "unknown"
     ## log parameters & results
     manifest_dict = {
         "meta":{
@@ -146,7 +145,7 @@ def run_tuned(model_tag: str, condition: str = "undepl", configuration: str = 't
             "val partition":X_val.shape,
             "train partition":X_tr.shape,
             "test partition":X_test.shape,
-            "git_commit": get_git_revision_hash(short=True),
+            **git, "library versions": ut.library_versions(LIBRARIES[model_tag]),
             "timestamp": datetime.now().isoformat(),
             "used seed": con.SEED
 
