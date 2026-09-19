@@ -449,16 +449,17 @@ def _on_record(model_tag: str, tag: str, seed: int) -> bool:
     return True
 
 
-def run_grid(seed: int = con.SEED) -> None:
+def run_grid(model_tags: tuple[str, ...] = MODEL_ORDER, seed: int = con.SEED) -> None:
     """Every frozen condition for every fitted model, model by model; conditions on record are skipped."""
     start_total = time.perf_counter()
     counts = pd.read_parquet(con.DEPLETION_COUNTS)
     conditions = sorted({(int(level), int(draw)) for level, draw in counts[['level', 'draw']].to_numpy()})
     assert len(conditions) == len(counts), f"{len(counts)} count rows for {len(conditions)} conditions"
-    print(f"[°°°] nICL depletion grid - {len(conditions)} conditions x {', '.join(MODEL_ORDER)}, seed {seed}")
+    assert set(model_tags) <= set(MODEL_ORDER), f"expected models from {MODEL_ORDER}, saw {model_tags}"
+    print(f"[°°°] nICL depletion grid - {len(conditions)} conditions x {', '.join(model_tags)}, seed {seed}")
 
     ran, skipped, ceiling = [], [], []
-    for model_tag in MODEL_ORDER:
+    for model_tag in model_tags:
         for level, draw in conditions:
             tag = _condition_tag(level, draw)
             if _on_record(model_tag, tag, seed):
