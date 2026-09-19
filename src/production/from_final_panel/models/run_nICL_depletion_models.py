@@ -1,6 +1,6 @@
 ##################################################
 '''
-src.production.from_final_panel.models.run_nICL_depletion
+src.production.from_final_panel.models.run_nICL_depletion_models
 
 input:      panel.parquet, split.parquet, ref_geo_table.parquet,
             pre_processing_constants.parquet, depletion_draws.parquet,
@@ -14,7 +14,8 @@ output:     results/predictions/predictions_{model_tag}__tuned__{condition}__see
 '''
 ##################################################
 import config as con, utils as ut, pandas as pd, numpy as np
-import time, math, json, yaml
+import time, math, json, yaml, torch
+import torch.optim as optim
 from datetime import datetime
 from stageguard import Gatekeeper
 from sklearn.ensemble import RandomForestRegressor
@@ -29,11 +30,16 @@ ICL_MODELS: tuple[str, ...] = ('tabicl', 'tabpfn3')
 ICL_CONFIGURATION: str = 'default'
 FITTED_MODELS: tuple[str, ...] = ('rf', 'xgb')
 ESTIMATORS: dict = {'rf': RandomForestRegressor, 'xgb': XGBRegressor}
+MODEL_ORDER: tuple[str, ...] = ('rf', 'xgb', 'ftt')
 LIBRARIES: dict[str, tuple[str, ...]] = {
     'rf': ('numpy', 'pandas', 'scikit-learn'),
     'xgb': ('numpy', 'pandas', 'xgboost'),
     'ftt': ('numpy', 'pandas', 'torch', 'rtdl-revisiting-models'),
 }
+
+
+class CeilingReached(RuntimeError):
+    pass
 
 
 def _condition_tag(level: int, draw: int) -> str:
@@ -123,7 +129,8 @@ def _load_locked(model_tag: str) -> dict:
     assert int(meta['tuning iterations']) == SOURCE_N_ITER, f"{path.name} records {meta['tuning iterations']} iterations"
     params = meta['hyperparameters']
 
-    locked = {'params': params, 'source': path.name, 'source_commit': meta['git_commit']}
+    locked = {'params': params, 'source': path.name, 'source_commit': meta['git_commit'],
+              'n_iter': int(meta['tuning iterations'])}
 
     if model_tag in FITTED_MODELS:
         log = meta['parameter search log']
@@ -248,11 +255,16 @@ def _condition_meta(model_tag: str, record: dict, locked: dict, seed: int,
     }
 
 
-def _score_and_persist(gk: Gatekeeper, predict, meta: dict, manifest_dir, start_total: float) -> None:
+def _artifact_paths(model_tag: str, tag: str, seed: int) -> tuple:
+    manifest_dir = con.FTT_VAL_TRIALS if model_tag == 'ftt' else con.PRED_DIR_MAN
+    stem = FIELD_SEPARATOR.join([model_tag, CONFIGURATION, tag, f'seed_{seed}'])
+    return manifest_dir / f'results_{stem}.yaml', con.PRED_DIR / f'predictions_{stem}.parquet'
+
+
+def _score_and_persist(gk: Gatekeeper, predict, meta: dict, start_total: float) -> None:
     """Stage-4 scoring, metrics, prediction table and manifest. `predict` maps X_test to a 1-d array."""
-    stem = FIELD_SEPARATOR.join([meta['model'], CONFIGURATION, meta['condition'], f"seed_{meta['used seed']}"])
-    pred_path = con.PRED_DIR / f'predictions_{stem}.parquet'
-    manifest_path = manifest_dir / f'results_{stem}.yaml'
+    manifest_path, pred_path = _artifact_paths(meta['model'], meta['condition'], meta['used seed'])
+    manifest_dir = manifest_path.parent
     assert not manifest_path.exists(), f"{manifest_path.name} already on record - remove it deliberately to rerun"
 
     X_test, y_test, geo_id = gk.stage_four_data()
@@ -339,4 +351,140 @@ def run_fitted_depleted(model_tag: str, *, level: int, draw: int, seed: int = co
             'train partition': X_tr.loc[kept].shape,
             'fit time': fit_time,
             **git}
-    _score_and_persist(gk, model.predict, meta, con.PRED_DIR_MAN, start_total)
+    _score_and_persist(gk, model.predict, meta, start_total)
+
+
+def _ftt_predictor(model):
+    def predict(X_test: pd.DataFrame) -> np.ndarray:
+        X_t = torch.tensor(X_test.to_numpy(dtype='float32'), dtype=torch.float32, device=DEVICE)
+        model.eval()
+        with torch.no_grad():
+            batches = [model(X_t[start:start + BATCH_SIZE], None) for start in range(0, len(X_t), BATCH_SIZE)]
+        return torch.cat(batches).cpu().numpy().flatten()
+    return predict
+
+
+def run_ftt_depleted(*, level: int, draw: int, seed: int = con.SEED, max_epochs: int = MAX_EPOCHS) -> None:
+    """FT-T under depletion. Epochs are an outcome: early stopping on this condition's own val curve, then refit on fit+val."""
+    model_tag = 'ftt'
+    assert seed == con.SEED, f"seeds derive from the locked run at {con.SEED}; seed {seed} would be another configuration"
+    assert max_epochs >= MAX_EPOCHS, f"max_epochs {max_epochs} below the ceiling of record {MAX_EPOCHS}"
+    git = ut.git_state()
+    start_total = time.perf_counter()
+    print(f"[°°°] {model_tag} depletion run - L{level} d{draw}, seed {seed}, ceiling {max_epochs}")
+
+    locked = _load_locked(model_tag)
+    params = locked['params']
+    entities, record = load_draw(level, draw)
+
+    gk = Gatekeeper(model="nICL")
+    X_fit, y_fit = gk.stage_one_data()
+    X_val, y_val = gk.stage_two_data()
+    X_tr, y_tr = gk.stage_three_data()
+    kept = depleted_labels(gk, X_tr, entities, record)
+    kept_fit, kept_val = split_depleted(kept, X_fit, X_val, X_tr)
+    X_fit_d, y_fit_d = X_fit.loc[kept_fit], y_fit.loc[kept_fit]
+    X_val_d, y_val_d = X_val.loc[kept_val], y_val.loc[kept_val]
+    X_tr_d, y_tr_d = X_tr.loc[kept], y_tr.loc[kept]
+
+    es_seed = seed + locked['winning_trial']
+    torch.manual_seed(es_seed)
+    torch.cuda.manual_seed(es_seed)
+    start_es = time.perf_counter()
+    model = build_model(X_fit_d, params)
+    best_score, best_epoch, curve = train_and_curve(model, X_fit_d, y_fit_d, X_val_d, y_val_d, max_epochs, params)
+    es_time = time.perf_counter() - start_es
+    if len(curve) >= max_epochs:
+        raise CeilingReached(f"{record['tag']}: val curve reached the ceiling {max_epochs} (best epoch {best_epoch})")
+    assert 1 <= best_epoch <= len(curve) and curve[best_epoch - 1] == best_score, \
+        f"{record['tag']}: best epoch {best_epoch} inconsistent with a curve of {len(curve)} epochs"
+    print(f"    [+++] early stopping on depleted fit/val - best epoch {best_epoch}/{len(curve)}, "
+          f"val RMSE {round(best_score, 5)}, duration {round(es_time / 60, 2)}min")
+
+    refit_seed = seed + locked['n_iter']
+    torch.manual_seed(refit_seed)
+    torch.cuda.manual_seed(refit_seed)
+    start_refit = time.perf_counter()
+    model = build_model(X_fit_d, params)
+    optimizer = optim.AdamW(model.make_parameter_groups(), lr=params['lr'], weight_decay=params['weight_decay'])
+    X_tr_t = torch.tensor(X_tr_d.to_numpy(dtype='float32'), dtype=torch.float32, device=DEVICE)
+    y_tr_t = torch.tensor(y_tr_d.to_frame().to_numpy(dtype='float32'), dtype=torch.float32, device=DEVICE)
+    for epoch in range(best_epoch):
+        _train_one_epoch(model, X_tr_t, y_tr_t, optimizer)
+    refit_time = time.perf_counter() - start_refit
+    print(f"    [+++] refit on depleted fit+val - {best_epoch} epochs on {len(kept)} rows, duration {round(refit_time / 60, 2)}min")
+
+    fit_steps = steps_per_epoch(len(kept_fit))
+    meta = {**_condition_meta(model_tag, record, locked, seed, gk, kept, kept_fit, kept_val),
+            'train partition': X_tr_d.shape,
+            'early stopping seed': es_seed,
+            'refit seed': refit_seed,
+            'MAX_EPOCHS': max_epochs,
+            'PATIENCE': PATIENCE,
+            'BATCH_SIZE': BATCH_SIZE,
+            'best epoch': best_epoch,
+            'epochs run': len(curve),
+            'best validation RMSE': best_score,
+            'truncated curve flag': False,
+            'steps per epoch fit': fit_steps,
+            'best steps': best_epoch * fit_steps,
+            'refit steps': best_epoch * steps_per_epoch(len(kept)),
+            'undepl epochs': locked['undepl_epochs'],
+            'undepl steps': locked['undepl_epochs'] * steps_per_epoch(len(X_fit)),
+            'validation curve': curve,
+            'early stopping time': es_time,
+            'refit time': refit_time,
+            **git}
+    _score_and_persist(gk, _ftt_predictor(model), meta, start_total)
+
+
+def _on_record(model_tag: str, tag: str, seed: int) -> bool:
+    manifest_path, pred_path = _artifact_paths(model_tag, tag, seed)
+    if not manifest_path.exists():
+        return False
+    meta = _read_manifest_meta(manifest_path)
+    assert meta['model'] == model_tag and meta['condition'] == tag, \
+        f"{manifest_path.name} records {meta['model']}/{meta['condition']}"
+    assert pred_path.exists(), f"{manifest_path.name} on record without {pred_path.name}"
+    return True
+
+
+def run_grid(seed: int = con.SEED) -> None:
+    """Every frozen condition for every fitted model, model by model; conditions on record are skipped."""
+    start_total = time.perf_counter()
+    counts = pd.read_parquet(con.DEPLETION_COUNTS)
+    conditions = sorted({(int(level), int(draw)) for level, draw in counts[['level', 'draw']].to_numpy()})
+    assert len(conditions) == len(counts), f"{len(counts)} count rows for {len(conditions)} conditions"
+    print(f"[°°°] nICL depletion grid - {len(conditions)} conditions x {', '.join(MODEL_ORDER)}, seed {seed}")
+
+    ran, skipped, ceiling = [], [], []
+    for model_tag in MODEL_ORDER:
+        for level, draw in conditions:
+            tag = _condition_tag(level, draw)
+            if _on_record(model_tag, tag, seed):
+                skipped.append((model_tag, tag))
+                print(f"    [+++] skip {model_tag} {tag} - on record")
+                continue
+            if model_tag == 'ftt':
+                try:
+                    run_ftt_depleted(level=level, draw=draw, seed=seed)
+                except CeilingReached as err:
+                    ceiling.append((level, draw, str(err)))
+                    print(f"    [+++] CEILING {err} - not scored, continuing")
+                    continue
+            else:
+                run_fitted_depleted(model_tag, level=level, draw=draw, seed=seed)
+            assert _on_record(model_tag, tag, seed), f"{model_tag} {tag} returned without a complete record"
+            ran.append((model_tag, tag))
+            print(f"    [---] {len(ran)} run, {len(skipped)} skipped, elapsed {round((time.perf_counter() - start_total) / 3600, 2)}h")
+
+    print(f"[°°°] grid finished - {len(ran)} run, {len(skipped)} skipped, {len(ceiling)} at the ceiling, "
+          f"elapsed {round((time.perf_counter() - start_total) / 3600, 2)}h")
+    if ceiling:
+        for level, draw, message in ceiling:
+            print(f"    [---] rerun with a raised max_epochs: run_ftt_depleted(level={level}, draw={draw}, max_epochs=...)")
+        raise RuntimeError(f"{len(ceiling)} ftt condition(s) reached the ceiling and are not on record")
+
+
+if __name__ == '__main__':
+    run_grid()

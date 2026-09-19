@@ -36,7 +36,7 @@ archive/
 
 #logs
 */log_config.py
-
+*log_config.py
 # postscript
 *.postscript
 *.ps 
