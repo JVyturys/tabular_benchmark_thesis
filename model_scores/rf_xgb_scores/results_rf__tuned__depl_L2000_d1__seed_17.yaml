@@ -1,0 +1,166 @@
+meta:
+  model: rf
+  condition: depl_L2000_d1
+  configuration: tuned
+  level: 2000
+  draw: 1
+  hyperparameters:
+    bootstrap: true
+    ccp_alpha: 0.0
+    criterion: squared_error
+    max_depth: 30
+    max_features: 0.33
+    max_leaf_nodes: null
+    max_samples: null
+    min_impurity_decrease: 0.0
+    min_samples_leaf: 1
+    min_samples_split: 2
+    min_weight_fraction_leaf: 0.0
+    monotonic_cst: null
+    n_estimators: 500
+    n_jobs: -1
+    oob_score: false
+    random_state: 17
+    verbose: 0
+    warm_start: false
+  locked source: results_rf_tuned_undepl_n_iter_30_seed_17.yaml
+  locked source commit: d7de024
+  draw build commit: bced3bd
+  context rows full: 58806
+  context rows: 43161
+  context entities: 5083
+  carried entities: 4862
+  anchor rows: 2026
+  anchor share: 0.046940525011005305
+  fit rows: 36960
+  val rows: 6201
+  anchor val rows: 330
+  anchor val share: 0.053217223028543786
+  library versions:
+    numpy: 1.26.4
+    pandas: 2.2.3
+    scikit-learn: 1.7.2
+  used seed: 17
+  train partition:
+  - 43161
+  - 125
+  fit time: 52.31237792898901
+  git_commit: d7de024
+  git_dirty: false
+  test partition:
+  - 25221
+  - 125
+  scoring time: 0.4442660879576579
+  total processing time: 55.949572660028934
+  timestamp: '2026-09-20T00:57:07.862963'
+metrics:
+  pooled_RMSE: 0.16695708884876156
+  pooled R2: 0.30688354361435677
+  average_RMSE: 0.1694506393249766
+  average R2 (global denominator): 0.2768444269883233
+  average_rmse_sq: 0.17053661058787295
+  regional bias gap: 0.03003911662603348
+  regional bias gap rmse: 0.0035795217391113854
+region metrics:
+  shape:
+  - 13
+  - 6
+  columns:
+  - rmse_r
+  - ssr_r
+  - n_r
+  - denominator_r
+  - r_sq
+  - r_sq_reg
+  results:
+    100277:
+      rmse_r: 0.1746836357988169
+      ssr_r: 15.623358779337579
+      n_r: 512
+      denominator_r: 18.439336333394568
+      r_sq: 0.24124611401861185
+      r_sq_reg: 0.15271577583609186
+    100090:
+      rmse_r: 0.17375962753862118
+      ssr_r: 12.378887346567746
+      n_r: 410
+      denominator_r: 13.945208355868715
+      r_sq: 0.24925190798794494
+      r_sq_reg: 0.11231965628120555
+    100334:
+      rmse_r: 0.1566993677166268
+      ssr_r: 66.51866020211978
+      n_r: 2709
+      denominator_r: 111.72032985558971
+      r_sq: 0.38943631287084857
+      r_sq_reg: 0.40459663618875685
+    103384:
+      rmse_r: 0.19585070452234984
+      ssr_r: 49.55788801277581
+      n_r: 1292
+      denominator_r: 60.99048948949386
+      r_sq: 0.04622318863166497
+      r_sq_reg: 0.18744892150254688
+    100024:
+      rmse_r: 0.1405694179305085
+      ssr_r: 37.08907187999333
+      n_r: 1877
+      denominator_r: 71.26574566549502
+      r_sq: 0.5086644635043758
+      r_sq_reg: 0.4795666342413524
+    100279:
+      rmse_r: 0.17933492482733387
+      ssr_r: 30.488642469158563
+      n_r: 948
+      denominator_r: 36.79260615992481
+      r_sq: 0.2003015885351873
+      r_sq_reg: 0.17133778627600016
+    100089:
+      rmse_r: 0.17753069747409964
+      ssr_r: 238.64784878758823
+      n_r: 7572
+      denominator_r: 301.6238204594612
+      r_sq: 0.2163116300938952
+      r_sq_reg: 0.20878978184130859
+    100219:
+      rmse_r: 0.15289189767733477
+      ssr_r: 39.29494232300807
+      n_r: 1681
+      denominator_r: 53.784547110776394
+      r_sq: 0.4187467082637357
+      r_sq_reg: 0.26940088865906153
+    100223:
+      rmse_r: 0.14542193345593887
+      ssr_r: 76.74441805140049
+      n_r: 3629
+      denominator_r: 122.56462111040743
+      r_sq: 0.47415673943694314
+      r_sq_reg: 0.373845263371162
+    103401:
+      rmse_r: 0.20773405787777183
+      ssr_r: 43.412359435179646
+      n_r: 1006
+      denominator_r: 58.23092302537273
+      r_sq: -0.07303007002347428
+      r_sq_reg: 0.25447928386325336
+    100276:
+      rmse_r: 0.16668784475403053
+      ssr_r: 57.57018348387712
+      n_r: 2072
+      denominator_r: 77.89480723341285
+      r_sq: 0.3091172557537558
+      r_sq_reg: 0.2609239880218551
+    100218:
+      rmse_r: 0.1823758153942354
+      ssr_r: 5.221967272391819
+      n_r: 157
+      denominator_r: 6.578062111850989
+      r_sq: 0.17295150362581235
+      r_sq_reg: 0.20615415549452465
+    100278:
+      rmse_r: 0.1493183862570276
+      ssr_r: 29.252326382416584
+      n_r: 1312
+      denominator_r: 29.27066701654164
+      r_sq: 0.4456002081489011
+      r_sq_reg: 0.0006265875019073608

@@ -37,7 +37,7 @@ meta:
     - min_samples_leaf: 5
       max_features: 0.2
       max_depth: 20
-    - 0.16166720233050527
+    - 0.1616672023305053
   - - rf
     - min_samples_leaf: 2
       max_features: 0.05
@@ -47,7 +47,7 @@ meta:
     - min_samples_leaf: 2
       max_features: 0.05
       max_depth: 30
-    - 0.16339277208458505
+    - 0.16339277208458503
   - - rf
     - min_samples_leaf: 20
       max_features: 0.33
@@ -173,7 +173,7 @@ meta:
       max_features: 0.33
       max_depth: 30
     - 0.16140455353058047
-  total processing time: 1255.9704631958157
+  total processing time: 1809.714670130983
   fit partition:
   - 50381
   - 125
@@ -186,8 +186,13 @@ meta:
   test partition:
   - 25221
   - 125
-  git_commit: '4257611'
-  timestamp: '2026-09-14T04:32:40.893840'
+  git_commit: d7de024
+  git_dirty: false
+  library versions:
+    numpy: 1.26.4
+    pandas: 2.2.3
+    scikit-learn: 1.7.2
+  timestamp: '2026-09-19T22:00:40.981441'
   used seed: 17
 metrics:
   pooled_RMSE: 0.1620642545005839
@@ -210,12 +215,12 @@ region metrics:
   - r_sq_reg
   results:
     100277:
-      rmse_r: 0.17827948717204273
-      ssr_r: 16.273190679719193
+      rmse_r: 0.1782794871720427
+      ssr_r: 16.273190679719185
       n_r: 512
       denominator_r: 18.439336333394568
-      r_sq: 0.20968680039001408
-      r_sq_reg: 0.11747416580022874
+      r_sq: 0.20968680039001453
+      r_sq_reg: 0.11747416580022918
     100090:
       rmse_r: 0.16963964743259327
       ssr_r: 11.798820092232365

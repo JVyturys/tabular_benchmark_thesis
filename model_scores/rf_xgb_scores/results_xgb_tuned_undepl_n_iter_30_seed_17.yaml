@@ -16,6 +16,7 @@ meta:
     enable_categorical: false
     eval_metric: null
     feature_types: null
+    feature_weights: null
     gamma: null
     grow_policy: null
     importance_type: null
@@ -314,7 +315,7 @@ meta:
       reg_lambda: 0.28870851310086737
       subsample: 0.6529939121860979
     - 0.15951140557547275
-  total processing time: 120.90387138118967
+  total processing time: 9255.484149219992
   fit partition:
   - 50381
   - 125
@@ -327,8 +328,14 @@ meta:
   test partition:
   - 25221
   - 125
-  git_commit: '4257611'
-  timestamp: '2026-09-14T04:34:42.014617'
+  git_commit: d7de024
+  git_dirty: false
+  library versions:
+    numpy: 1.26.4
+    pandas: 2.2.3
+    scikit-learn: 1.7.2
+    xgboost: 3.2.0
+  timestamp: '2026-09-20T00:34:56.727310'
   used seed: 17
 metrics:
   pooled_RMSE: 0.15962007155605193
