@@ -25,7 +25,7 @@ BATCH_SIZE = 256
 ATTENTION_N_HEADS = 8
 SEARCH_SPACE = {
     # architecture Defaults
-    'n_blocks': randint(1, 7),  # scipy's randint is exclusive at the upper bound (1 to 6)
+    'n_blocks': randint(1, 7),  # 1 to 6
     'd_token': [64, 96, 128, 192, 256, 320, 384, 512],
     'ffn_d_hidden_multiplier': uniform(0.66, 2.0),  # loc=0.66, scale=2.0 spans [0.66, 2.66]
     'attention_dropout': uniform(0.0, 0.5),
@@ -91,8 +91,9 @@ def train_and_curve(model, X_fit, y_fit, X_val, y_val, max_epochs, params) -> tu
 
         ## evaluate    
         model.eval()
-        with torch.no_grad(): # deactivate gradient tracking
-            y_val_pred = model(X_val_t, None)
+        with torch.no_grad(): # deactivate gradient tracking, forward in batches to bound attention memory
+            y_val_pred = torch.cat([model(X_val_t[start:start + BATCH_SIZE], None)
+                                    for start in range(0, len(X_val_t), BATCH_SIZE)])
         y_val_pred = y_val_pred.cpu().numpy().flatten()
         y_val_pred = pd.Series(y_val_pred, index=y_val.index)
         metrics = ut.pooled_metrics(y_true=y_val, y_pred=y_val_pred)
