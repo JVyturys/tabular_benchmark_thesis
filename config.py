@@ -33,6 +33,12 @@ TRIPWIRE_STD_RATIO = (0.5, 2.0)
 DEPLETION_BUDGET_H = 40
 GRID_MAX_CONSECUTIVE_FAILURES = 2
 
+## ICL ENVIRONMENT EQUIVALENCE CHECK
+ICL_EQUIV_REPLICATES = 2
+ICL_EQUIV_NOISE_FACTOR = 3.0
+ICL_EQUIV_ABS_TOL = 1e-4
+ICL_ENV_CHECK_DIR = PROJECT_ROOT / "archive" / "icl_env_check"
+
 ## RESULTS
 RESULTS_DIR = PROJECT_ROOT / "results"
 PRED_DIR = RESULTS_DIR / "predictions" 
@@ -101,6 +107,3 @@ CUTOFF_VARS = ['item4057', 'item3499', 'item18188', 'item4150', 'item1084', 'ite
                                         'item1265', 'item3449']
 
 DEGVAR_VARS = ['item4450', 'item3448', 'item4452' , 'item4799', 'item3257']
-
-
-
