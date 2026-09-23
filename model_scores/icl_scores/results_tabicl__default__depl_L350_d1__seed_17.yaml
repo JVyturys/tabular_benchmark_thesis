@@ -28,14 +28,20 @@ meta:
   context rows: 41510
   context rows full: 58806
   context entities: 4912
-  context storage time: 4.81964712899935
-  scoring time: 2685.446748390008
-  total processing time: 2692.7569529149914
+  context storage time: 4.657647020998411
+  scoring time: 2171.0688366889954
+  total processing time: 2178.3188827299746
   test partition:
   - 25221
   - 125
-  git_commit: 18d798b
-  timestamp: '2026-09-16T19:23:51.806646'
+  git_commit: 259c9c2
+  git_dirty: false
+  library versions:
+    numpy: 1.26.4
+    pandas: 2.2.3
+    torch: 2.12.0
+    tabicl: 2.1.1
+  timestamp: '2026-09-21T16:58:04.036103'
   used seed: 17
 metrics:
   pooled_RMSE: 0.17281158019126638
