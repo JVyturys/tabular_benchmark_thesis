@@ -54,7 +54,14 @@ VIZ_NAN_SHARE = VIZ / "total_nan_shares_per_region.png"
 VIZ_USABLE_DROPPED = VIZ / "dropped_usable_features.png"
 VIZ_RMSE = VIZ / "ft_epoch_rmse_curve.png"
 
-
+## ASSEMBLED RESULTS - assemble_results.py
+RESULTS_TABLES = RESULTS_DIR / "tables"
+TAB_AGGREGATE = RESULTS_TABLES / "aggregate_undepl.csv"
+TAB_PER_REGION = RESULTS_TABLES / "per_region_undepl.csv"
+TAB_DID = RESULTS_TABLES / "did_r_sq.csv"
+TAB_GAP_CURVE = RESULTS_TABLES / "gap_curve.csv"
+TAB_HEADLINE = RESULTS_TABLES / "headline_changes.csv"
+VIZ_GAP_CURVE = VIZ / "gap_curve_r_sq.png"
 
 ## SPLIT PARTITIONS
 SPLIT = FINAL_DIR / "split.parquet"
@@ -78,6 +85,8 @@ TIER1_REGS = [100277, 100090, 100334, 103384,
               100223, 103401, 100276, 100218, 100278]
 TIER2_REGS = [100060, 100087, 100332]
 TIER3_REGS = [110000]
+ANCHOR_REGION = 100089      # largest Tier-1 region by rows; depletion anchor and Wasserstein reference
+EQUAL_N_REGION = 100218     # smallest Tier-1 region; deepest depletion level approximates its train+val N
 
 # SPLIT PARAMETERS
 TRAIN_SHARE = 0.7
@@ -107,3 +116,6 @@ CUTOFF_VARS = ['item4057', 'item3499', 'item18188', 'item4150', 'item1084', 'ite
                                         'item1265', 'item3449']
 
 DEGVAR_VARS = ['item4450', 'item3448', 'item4452' , 'item4799', 'item3257']
+
+# RESULTS ASSEMBLY 
+INVARIANT_RTOL = 1e-9
