@@ -1,0 +1,150 @@
+meta:
+  model: tabicl
+  condition: depl_L8000_d1
+  configuration: default
+  hyperparameters:
+    allow_auto_download: true
+    batch_size: 8
+    checkpoint_version: tabicl-regressor-v2-20260212.ckpt
+    device: cuda
+    disk_offload_dir: null
+    feat_shuffle_method: latin
+    inference_config: null
+    kv_cache: false
+    model_path: null
+    n_estimators: 8
+    n_jobs: null
+    norm_methods: null
+    offload_mode: auto
+    outlier_threshold: 4.0
+    random_state: 17
+    use_amp: auto
+    use_fa3: auto
+    verbose: false
+  device: cuda
+  ignore_pretraining_limits: true
+  checkpoint_max_samples: null
+  query_batch: 256
+  context rows: 49164
+  context rows full: 58806
+  context entities: 5736
+  context storage time: 4.905544732988346
+  scoring time: 2417.3547828630253
+  total processing time: 2424.28191550498
+  test partition:
+  - 25221
+  - 125
+  git_commit: 18d798b
+  timestamp: '2026-09-17T21:42:59.067388'
+  used seed: 17
+metrics:
+  pooled_RMSE: 0.16776834892320755
+  pooled R2: 0.3001313435081969
+  average_RMSE: 0.17331637788395182
+  average R2 (global denominator): 0.24400776464623494
+  average_rmse_sq: 0.1743654463661806
+  regional bias gap: 0.05612357886196198
+  regional bias gap rmse: 0.006597097442973043
+region metrics:
+  shape:
+  - 13
+  - 6
+  columns:
+  - rmse_r
+  - ssr_r
+  - n_r
+  - denominator_r
+  - r_sq
+  - r_sq_reg
+  results:
+    100277:
+      rmse_r: 0.17944992250480063
+      ssr_r: 16.487564639733225
+      n_r: 512
+      denominator_r: 18.439336333394568
+      r_sq: 0.1992756540090589
+      r_sq_reg: 0.10584826147601556
+    100090:
+      rmse_r: 0.1775357533116497
+      ssr_r: 12.922766918613325
+      n_r: 410
+      denominator_r: 13.945208355868715
+      r_sq: 0.21626699265863913
+      r_sq_reg: 0.07331847693943594
+    100334:
+      rmse_r: 0.16140711514128644
+      ssr_r: 70.57556372059184
+      n_r: 2709
+      denominator_r: 111.72032985558971
+      r_sq: 0.35219867213907385
+      r_sq_reg: 0.3682836077210102
+    103384:
+      rmse_r: 0.20157868841299262
+      ssr_r: 52.49908616801466
+      n_r: 1292
+      denominator_r: 60.99048948949386
+      r_sq: -0.010382262298425982
+      r_sq_reg: 0.13922503971610067
+    100024:
+      rmse_r: 0.14893418730395908
+      ssr_r: 41.63447306159096
+      n_r: 1877
+      denominator_r: 71.26574566549502
+      r_sq: 0.448449499501655
+      r_sq_reg: 0.4157856250180335
+    100279:
+      rmse_r: 0.18878744466185404
+      ssr_r: 33.78738290033107
+      n_r: 948
+      denominator_r: 36.79260615992481
+      r_sq: 0.11377764817569369
+      r_sq_reg: 0.08168008666010418
+    100089:
+      rmse_r: 0.16907230836905018
+      ssr_r: 216.44899300221522
+      n_r: 7572
+      denominator_r: 301.6238204594612
+      r_sq: 0.28920977349892596
+      r_sq_reg: 0.2823876023037565
+    100219:
+      rmse_r: 0.16046316904545463
+      ssr_r: 43.28310851040516
+      n_r: 1681
+      denominator_r: 53.784547110776394
+      r_sq: 0.3597534997902242
+      r_sq_reg: 0.19525010740988735
+    100223:
+      rmse_r: 0.1505347493337646
+      ssr_r: 82.23571933707802
+      n_r: 3629
+      denominator_r: 122.56462111040743
+      r_sq: 0.4365310222041823
+      r_sq_reg: 0.3290419487121061
+    103401:
+      rmse_r: 0.20841018524079946
+      ssr_r: 43.695414143976976
+      n_r: 1006
+      denominator_r: 58.23092302537273
+      r_sq: -0.0800263774795289
+      r_sq_reg: 0.24961838360457134
+    100276:
+      rmse_r: 0.17227460487844248
+      ssr_r: 61.49393381504064
+      n_r: 2072
+      denominator_r: 77.89480723341285
+      r_sq: 0.26202948857145125
+      r_sq_reg: 0.21055156307437495
+    100218:
+      rmse_r: 0.18860787955779998
+      ssr_r: 5.584950360312465
+      n_r: 157
+      denominator_r: 6.578062111850989
+      r_sq: 0.11546270650883483
+      r_sq_reg: 0.1509733010500678
+    100278:
+      rmse_r: 0.1460569047295197
+      ssr_r: 27.988396677948415
+      n_r: 1312
+      denominator_r: 29.27066701654164
+      r_sq: 0.4695546231212697
+      r_sq_reg: 0.043807349448804156

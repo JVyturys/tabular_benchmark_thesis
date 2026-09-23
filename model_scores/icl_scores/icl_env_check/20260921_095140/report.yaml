@@ -1,0 +1,211 @@
+head: 259c9c2
+timestamp: '2026-09-21T14:49:42.255603'
+equivalent: false
+replicates: 2
+noise factor: 3.0
+absolute tolerance: 0.0001
+models:
+  tabicl:
+    passed: false
+    old commit: '4257611'
+    new library versions:
+      numpy: 1.26.4
+      pandas: 2.2.3
+      torch: 2.12.0
+      tabicl: 2.1.1
+    failing quantities:
+    - r_sq region 100024
+    - r_sq region 100090
+    - r_sq region 100218
+    - r_sq region 100219
+    - r_sq region 100223
+    - r_sq region 100276
+    - r_sq region 100277
+    - r_sq region 100278
+    - r_sq region 100279
+    - r_sq region 100334
+    - r_sq region 103384
+    - r_sq region 103401
+    - rmse_r region 100090
+    - rmse_r region 100218
+    - rmse_r region 100219
+    - rmse_r region 100277
+    - rmse_r region 100278
+    - rmse_r region 100279
+    - rmse_r region 103384
+    - rmse_r region 103401
+    scalar metrics:
+      pooled_RMSE:
+        old: 0.16495936678117243
+        new: 0.1649478482696926
+        deviation: 1.151851147981886e-05
+        noise: 0.0
+        bound: 0.0001
+      pooled R2:
+        old: 0.3233712533991272
+        new: 0.3234657431396323
+        deviation: 9.448974050507708e-05
+        noise: 0.0
+        bound: 0.0001
+      average_RMSE:
+        old: 0.17294820097539715
+        new: 0.17293576064287206
+        deviation: 1.2440332525093245e-05
+        noise: 0.0
+        bound: 0.0001
+      average R2 (global denominator):
+        old: 0.24648801061079986
+        new: 0.24654411617408614
+        deviation: 5.610556328627947e-05
+        noise: 0.0
+        bound: 0.0001
+      regional bias gap:
+        old: 0.07688324278832734
+        new: 0.07692162696554614
+        deviation: 3.838417721879761e-05
+        noise: 0.0
+        bound: 0.0001
+      regional bias gap rmse:
+        old: 0.009119817063484165
+        new: 0.009124854594822707
+        deviation: 5.037531338542012e-06
+        noise: 0.0
+        bound: 0.0001
+    diagnostics:
+      hyperparameters:
+        old:
+          allow_auto_download: true
+          batch_size: 8
+          checkpoint_version: tabicl-regressor-v2-20260212.ckpt
+          device: cuda
+          disk_offload_dir: null
+          feat_shuffle_method: latin
+          inference_config: null
+          model_path: null
+          n_estimators: 8
+          n_jobs: null
+          norm_methods: null
+          offload_mode: auto
+          outlier_threshold: 4.0
+          random_state: 17
+          use_amp: auto
+          use_fa3: auto
+          verbose: false
+        new:
+          allow_auto_download: true
+          batch_size: 8
+          checkpoint_version: tabicl-regressor-v2-20260212.ckpt
+          device: cuda
+          disk_offload_dir: null
+          feat_shuffle_method: latin
+          inference_config: null
+          kv_cache: false
+          model_path: null
+          n_estimators: 8
+          n_jobs: null
+          norm_methods: null
+          offload_mode: auto
+          outlier_threshold: 4.0
+          random_state: 17
+          use_amp: auto
+          use_fa3: auto
+          verbose: false
+      predictions:
+        old vs new max: 0.020507633686065674
+        old vs new mean: 0.002395101822912693
+        replicate spread max: 0.0
+        replicate spread mean: 0.0
+  tabpfn3:
+    passed: false
+    old commit: '4257611'
+    new library versions:
+      numpy: 1.26.4
+      pandas: 2.2.3
+      torch: 2.12.0
+      tabpfn: 8.0.3
+    failing quantities:
+    - r_sq region 100218
+    - r_sq region 100277
+    - r_sq region 100278
+    - r_sq region 100334
+    - rmse_r region 100277
+    - rmse_r region 100334
+    scalar metrics:
+      pooled_RMSE:
+        old: 0.16363982985050243
+        new: 0.16373013147655083
+        deviation: 0.00018712964008238409
+        noise: 9.682801403398944e-05
+        bound: 0.0003904840421019683
+      pooled R2:
+        old: 0.3341528860379597
+        new: 0.33341781234403867
+        deviation: 0.0015237240670425978
+        noise: 0.000788650373121591
+        bound: 0.002465951119364773
+      average_RMSE:
+        old: 0.17093295224680832
+        new: 0.1707881918570733
+        deviation: 0.00014476038973501582
+        noise: 0.00019439475273638762
+        bound: 0.0006831842582091629
+      average R2 (global denominator):
+        old: 0.26484993319939326
+        new: 0.26621380724170685
+        deviation: 0.0013638740423135842
+        noise: 0.0016575960652458477
+        bound: 0.005072788195737543
+      regional bias gap:
+        old: 0.06930295283856641
+        new: 0.06720400510233182
+        deviation: 0.002098947736234591
+        noise: 0.0008689456921242567
+        bound: 0.00270683707637277
+      regional bias gap rmse:
+        old: 0.008305252288543508
+        new: 0.008055377594267887
+        deviation: 0.00024987469427562026
+        noise: 9.709111226122169e-05
+        bound: 0.00039127333678366506
+    diagnostics:
+      hyperparameters:
+        old:
+          auto_scale_n_estimators: true
+          average_before_softmax: false
+          categorical_features_indices: null
+          device: cuda
+          differentiable_input: false
+          fit_mode: fit_preprocessors
+          ignore_pretraining_limits: true
+          inference_config: null
+          inference_precision: auto
+          memory_saving_mode: auto
+          model_path: auto
+          n_estimators: 8
+          n_jobs: null
+          n_preprocessing_jobs: 1
+          random_state: 17
+          show_progress_bar: false
+          softmax_temperature: 0.9
+        new:
+          average_before_softmax: false
+          categorical_features_indices: null
+          device: cuda
+          differentiable_input: false
+          fit_mode: fit_preprocessors
+          ignore_pretraining_limits: true
+          inference_config: null
+          inference_precision: auto
+          memory_saving_mode: auto
+          model_path: auto
+          n_estimators: 8
+          n_jobs: null
+          n_preprocessing_jobs: 1
+          random_state: 17
+          show_progress_bar: false
+          softmax_temperature: 0.9
+      predictions:
+        old vs new max: 0.07566684484481812
+        old vs new mean: 0.007014754228293896
+        replicate spread max: 0.08585646748542786
+        replicate spread mean: 0.007047607097774744
