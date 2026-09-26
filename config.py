@@ -62,6 +62,63 @@ TAB_DID = RESULTS_TABLES / "did_r_sq.csv"
 TAB_GAP_CURVE = RESULTS_TABLES / "gap_curve.csv"
 TAB_HEADLINE = RESULTS_TABLES / "headline_changes.csv"
 VIZ_GAP_CURVE = VIZ / "gap_curve_r_sq.png"
+## DESCRIPTIVE STATISTICS - src/production/descriptives/build_desc_*.py
+DESC_DIR = RESULTS_DIR / "descriptives"
+VIZ_DESC_DIR = VIZ / "descriptives"
+### raw
+TAB_DESC_ATTRITION = DESC_DIR / "desc_attrition.csv"
+### panel
+TAB_DESC_REGION_BALANCE = DESC_DIR / "desc_region_balance.csv"
+TAB_DESC_YEAR_COVERAGE = DESC_DIR / "desc_year_coverage.csv"
+TAB_DESC_OBS_PER_ENTITY = DESC_DIR / "desc_obs_per_entity.csv"
+TAB_DESC_TARGET_REGION = DESC_DIR / "desc_target_by_region.csv"
+TAB_DESC_TARGET_YEAR = DESC_DIR / "desc_target_by_year.csv"
+TAB_DESC_FEATURE_NAN = DESC_DIR / "desc_feature_missingness.csv"
+VIZ_DESC_COVERAGE = VIZ_DESC_DIR / "coverage_region_year.png"
+VIZ_DESC_OBS_PER_ENTITY = VIZ_DESC_DIR / "obs_per_entity.png"
+### clusters & split
+TAB_DESC_CLUSTER_SIZES = DESC_DIR / "desc_cluster_sizes.csv"
+TAB_DESC_CLUSTER_SOURCE = DESC_DIR / "desc_cluster_key_source.csv"
+TAB_DESC_PARTITIONS = DESC_DIR / "desc_partition_by_region.csv"
+TAB_DESC_TARGET_PARTITION = DESC_DIR / "desc_target_by_partition.csv"
+VIZ_DESC_PARTITIONS = VIZ_DESC_DIR / "partition_shares.png"
+### features
+TAB_DESC_FEATURE_FUNNEL = DESC_DIR / "desc_feature_funnel.csv"
+TAB_DESC_FEATURE_CONSTANTS = DESC_DIR / "desc_feature_constants.csv"
+TAB_DESC_IMPUTATION = DESC_DIR / "desc_imputation_by_region.csv"
+VIZ_DESC_IMPUTATION = VIZ_DESC_DIR / "imputation_by_region.png"
+### depletion
+TAB_DESC_DEPL_CONDITIONS = DESC_DIR / "desc_depletion_conditions.csv"
+TAB_DESC_DEPL_COMPOSITION = DESC_DIR / "desc_depletion_composition.csv"
+TAB_DESC_DEPL_LEVELS = DESC_DIR / "desc_depletion_levels.csv"
+VIZ_DESC_POOL_SHARE = VIZ_DESC_DIR / "depletion_pool_share.png"
+VIZ_DESC_DEPL_TARGET = VIZ_DESC_DIR / "depletion_target.png"
+### predictions
+TAB_DESC_PRED_REGION = DESC_DIR / "desc_prediction_by_region.csv"
+TAB_DESC_PRED_LEVELS = DESC_DIR / "desc_prediction_levels.csv"
+VIZ_DESC_RESID_BIAS = VIZ_DESC_DIR / "residual_bias_by_region.png"
+VIZ_DESC_DISPERSION = VIZ_DESC_DIR / "prediction_dispersion.png"
+### performance metrics (manifests)
+TAB_DESC_METRIC_LEVELS = DESC_DIR / "desc_metric_levels.csv"
+TAB_DESC_METRIC_REGION_LEVELS = DESC_DIR / "desc_metric_region_levels.csv"
+TAB_DESC_METRIC_RANKS = DESC_DIR / "desc_metric_ranks.csv"
+TAB_DESC_METRIC_REGION_SIZE = DESC_DIR / "desc_metric_region_size.csv"
+VIZ_DESC_METRIC_CURVES = VIZ_DESC_DIR / "metric_curves.png"
+VIZ_DESC_REGION_DELTA = VIZ_DESC_DIR / "region_delta_r_sq_deepest.png"
+VIZ_DESC_REGION_SIZE = VIZ_DESC_DIR / "region_r_sq_vs_size.png"
+### assembled results (assemble_results tables)
+VIZ_DESC_POOLED_MACRO = VIZ_DESC_DIR / "pooled_vs_macro_r_sq.png"
+VIZ_DESC_REGION_HEATMAP = VIZ_DESC_DIR / "region_r_sq_heatmap.png"
+VIZ_DESC_GAP_SHARE = VIZ_DESC_DIR / "gap_share_removed.png"
+VIZ_DESC_DID = VIZ_DESC_DIR / "did_decomposition.png"
+VIZ_DESC_HEADLINE = VIZ_DESC_DIR / "headline_changes.png"
+### depletion design schematic
+TAB_DESC_DEPL_DESIGN = DESC_DIR / "desc_depletion_design_facts.csv"
+VIZ_DESC_DEPL_DESIGN = VIZ_DESC_DIR / "depletion_design_schematic.png"
+### depletion strata
+TAB_DESC_STRATA = DESC_DIR / "desc_depletion_strata.csv"
+VIZ_DESC_STRATA = VIZ_DESC_DIR / "depletion_strata.png"
+VIZ_DESC_DRAW_DISTR = VIZ_DESC_DIR / "depletion_draw_distributions.png"
 
 ## SPLIT PARTITIONS
 SPLIT = FINAL_DIR / "split.parquet"
