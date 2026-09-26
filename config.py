@@ -11,6 +11,9 @@ DATA_RAW = DATA_ROOT / "raw"
 RAW_PANEL = DATA_RAW / "raw_panel.parquet"
 REF_WSVAR = DATA_RAW / "ref_ws_variables.parquet"
 REF_GEO_RAW = DATA_RAW / "ref_geo_raw.parquet"
+RAW_ESG_SCORES = DATA_RAW / "raw_esg_scores.parquet"
+RAW_WS_UNIVERSE = DATA_RAW / "raw_ws_universe.parquet"
+REF_WS_NATION_XWALK = DATA_RAW / "ref_ws_nation_xwalk.parquet"
 
 ## FINAL PANEL
 FINAL_DIR = PROJECT_ROOT / "data" / "final"
@@ -53,6 +56,10 @@ VIZ_CUTOFF = VIZ / "cutoff_kneedle.png"
 VIZ_NAN_SHARE = VIZ / "total_nan_shares_per_region.png"
 VIZ_USABLE_DROPPED = VIZ / "dropped_usable_features.png"
 VIZ_RMSE = VIZ / "ft_epoch_rmse_curve.png"
+VIZ_ESG_COVERAGE = VIZ / "esg_coverage_per_region.png"
+
+# ESG COVERAGE ANALYSIS
+COVERAGE_MIN_RESOLUTION = 0.5   # below: most rated firm-years of a region cannot enter the numerator
 
 ## ASSEMBLED RESULTS - assemble_results.py
 RESULTS_TABLES = RESULTS_DIR / "tables"
@@ -128,6 +135,10 @@ PRE_PROS_CONTS = FINAL_DIR / "pre_processing_constants.parquet"
 
 # --------------------------------------------------------------------------
 
+# SAMPLE WINDOW (inclusive; 2026 excluded as partial year)
+YEAR_MIN = 2009
+YEAR_MAX = 2025
+
 # BUILD_CLUSTER_KEY CONSTANTS - build_cluster_keys.py
 ULTIMATE_KEY_TYPECODES = ['COM', 'UNK', 'NGO', 'CLGUN']
 IMMEDIATE_KEY_TYPECODES = ['GVT', 'GVTDA', 'CINV']
@@ -176,3 +187,5 @@ DEGVAR_VARS = ['item4450', 'item3448', 'item4452' , 'item4799', 'item3257']
 
 # RESULTS ASSEMBLY 
 INVARIANT_RTOL = 1e-9
+
+SENSITIVITY_EXCLUDED_REGION = 100219  

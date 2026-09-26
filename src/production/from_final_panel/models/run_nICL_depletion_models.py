@@ -254,12 +254,10 @@ def _condition_meta(model_tag: str, record: dict, locked: dict, seed: int,
         'used seed': seed,
     }
 
-
 def _artifact_paths(model_tag: str, tag: str, seed: int) -> tuple:
     manifest_dir = con.FTT_VAL_TRIALS if model_tag == 'ftt' else con.PRED_DIR_MAN
     stem = FIELD_SEPARATOR.join([model_tag, CONFIGURATION, tag, f'seed_{seed}'])
     return manifest_dir / f'results_{stem}.yaml', con.PRED_DIR / f'predictions_{stem}.parquet'
-
 
 def _score_and_persist(gk: Gatekeeper, predict, meta: dict, start_total: float) -> None:
     """Stage-4 scoring, metrics, prediction table and manifest. `predict` maps X_test to a 1-d array."""
