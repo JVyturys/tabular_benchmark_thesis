@@ -18,7 +18,7 @@ purpose:    pull every available ESGCombinedScore (the panel target) for
             outside-Worldscope share
 output:     raw_esg_scores.parquet with columns orgpermid, year, esg_combined_score,
             typecode, worldscopecmpid, domcntrypermid, lvl3permid, lvl5isocntry,
-            ws_cmpid_bridged
+            ws_cmpid_bridged    exit
 '''
 ##################################################
 
