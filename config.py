@@ -19,6 +19,7 @@ REF_WS_NATION_XWALK = DATA_RAW / "ref_ws_nation_xwalk.parquet"
 FINAL_DIR = PROJECT_ROOT / "data" / "final"
 PANEL = FINAL_DIR / "panel.parquet"
 
+
 ## FINAL PANEL ARTIFACTS
 REF_CLUSTER_KEYS = FINAL_DIR / "ref_cluster_keys.parquet"
 REF_GEOGRAPHY = FINAL_DIR / "ref_geo_table.parquet"
@@ -155,6 +156,25 @@ TIER2_REGS = [100060, 100087, 100332]
 TIER3_REGS = [110000]
 ANCHOR_REGION = 100089      # largest Tier-1 region by rows; depletion anchor and Wasserstein reference
 EQUAL_N_REGION = 100218     # smallest Tier-1 region; deepest depletion level approximates its train+val N
+REGION_LABELS = {100089: 'Eastern Asia',
+                 100223: 'Northern Europe',
+                 100276: 'South-eastern Asia',
+                 100334: 'Western Europe',
+                 100278: 'Southern Asia',
+                 100024: 'Australia and New Zealand',
+                 100219: 'Northern America',
+                 103401: 'Western Asia',
+                 103384: 'Latin America and the Caribbean',
+                 100279: 'Southern Europe',
+                 100277: 'Southern Africa',
+                 100090: 'Eastern Europe',
+                 100218: 'Northern Africa',
+                 100087: 'Eastern Africa',
+                 100332: 'Western Africa',
+                 100060: 'Central Asia',
+                 110000: 'Melanesia',
+                 100057: 'Middle Africa'}   # not in panel; appears in the ESG coverage figure
+
 
 # SPLIT PARAMETERS
 TRAIN_SHARE = 0.7
