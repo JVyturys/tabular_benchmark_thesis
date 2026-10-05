@@ -11,6 +11,7 @@ output:     depletion_draw_distributions.png
 '''
 ##################################################
 import numpy as np, pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy.stats import wasserstein_distance
 import config as con
@@ -21,19 +22,15 @@ C_DRAW, C_BAND, C_FULL = "#1f4e79", "#6fa8dc", "#cccccc"
 STATS = [('target_mean_delta', 'Δ mean', '{:+.4f}'), ('target_std_ratio', 'σ ratio', '{:.3f}'),
          ('wasserstein_1', 'W₁', '{:.4f}')]
 
-
 def _n(x) -> str:
-    return f"{int(x):,}".replace(",", ".")
-
+    return f"{int(x):,}"
 
 def _fmt(fmt: str, value: float) -> str:
     return fmt.format(0.0 if abs(value) < 5e-5 else value)
 
-
 def _density(y: np.ndarray) -> np.ndarray:
     h, _ = np.histogram(y, bins=BINS, density=True)
     return h
-
 
 def collect() -> tuple[np.ndarray, pd.DataFrame, dict]:
     assert ANCHOR_REGION == con.ANCHOR_REGION, f"draw build anchor {ANCHOR_REGION} differs from con.ANCHOR_REGION"
@@ -61,12 +58,10 @@ def collect() -> tuple[np.ndarray, pd.DataFrame, dict]:
     print(f"    [+++] {len(retained)} draws rebuilt and reconciled with depletion_counts")
     return full_y, counts.reset_index(), retained
 
-
 def _stats_box(ax, lines: list[str]) -> None:
-    ax.text(0.97, 0.95, "\n".join(lines), transform=ax.transAxes, ha='right', va='top', fontsize=9.5,
+    ax.text(0.97, 0.95, "\n".join(lines), transform=ax.transAxes, ha='right', va='top', fontsize=9.5 * con.FONT_SCALE,
             family='DejaVu Sans Mono', color="#333333", linespacing=1.35,
             bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='#dddddd', alpha=0.9))
-
 
 def _panel(ax, full_h: np.ndarray) -> None:
     ax.stairs(full_h, BINS, fill=True, color=C_FULL, alpha=0.8, zorder=1)
@@ -78,9 +73,9 @@ def _panel(ax, full_h: np.ndarray) -> None:
         ax.spines[side].set_visible(False)
     ax.spines['bottom'].set_color('#cccccc')
 
-
 def plot(full_y: np.ndarray, counts: pd.DataFrame, retained: dict) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     levels = sorted(DEPLETION_GRID, reverse=True)
     n_cols = max(DEPLETION_GRID.values())
     full_h = _density(full_y)
@@ -101,7 +96,7 @@ def plot(full_y: np.ndarray, counts: pd.DataFrame, retained: dict) -> None:
             dens.append(h)
             _panel(ax, full_h)
             ax.stairs(h, BINS, color=C_DRAW, lw=1.6, zorder=3)
-            ax.set_title(f"draw {int(c['draw']) + 1} · {_n(c['anchor_rows_retained'])} rows", fontsize=10.5, pad=4)
+            ax.set_title(f"draw {int(c['draw']) + 1} · {_n(c['anchor_rows_retained'])} rows", fontsize=10.5 * con.FONT_SCALE, pad=4)
             _stats_box(ax, [f"{lab:<7} {_fmt(fmt, c[k])}" for k, lab, fmt in STATS])
 
         ax = axes[i, n_cols]
@@ -110,26 +105,26 @@ def plot(full_y: np.ndarray, counts: pd.DataFrame, retained: dict) -> None:
         ax.set_facecolor("#f3f6fa")
         ax.fill_between(BINS[:-1], dens.min(axis=0), dens.max(axis=0), step='post', color=C_BAND, alpha=0.45, lw=0, zorder=2)
         ax.stairs(dens.mean(axis=0), BINS, color=C_DRAW, lw=2.2, zorder=3)
-        ax.set_title(f"level mean · {len(c_lvl)} draws", fontsize=10.5, pad=4, fontweight='bold', color=C_DRAW)
+        ax.set_title(f"level mean · {len(c_lvl)} draws", fontsize=10.5 * con.FONT_SCALE, pad=4, fontweight='bold', color=C_DRAW)
         _stats_box(ax, [f"{lab:<7} {_fmt(fmt, c_lvl[k].mean())}" for k, lab, fmt in STATS])
 
-        axes[i, 0].set_ylabel(f"L{_n(lvl)}", rotation=0, fontsize=14, fontweight='bold', color=C_DRAW,
+        axes[i, 0].set_ylabel(f"L{int(lvl)}", rotation=0, fontsize=14 * con.FONT_SCALE, fontweight='bold', color=C_DRAW,
                               labelpad=38, va='center')
 
     axes[0, 0].set_ylim(0, y_max * 1.55)
     for ax in axes[-1]:
         ax.set_xticks([0.25, 0.5, 0.75])
-        ax.tick_params(axis='x', labelsize=10)
-    axes[-1, n_cols // 2].set_xlabel("ESG Combined Score (row level)", fontsize=12, labelpad=8)
+        ax.tick_params(axis='x', labelsize=10 * con.FONT_SCALE)
+    axes[-1, n_cols // 2].set_xlabel("ESG Combined Score (row level)", fontsize=12 * con.FONT_SCALE, labelpad=8)
 
     handles = [plt.Rectangle((0, 0), 1, 1, color=C_FULL, alpha=0.8), plt.Line2D([], [], color=C_DRAW, lw=1.8),
                plt.Rectangle((0, 0), 1, 1, color=C_BAND, alpha=0.45)]
     labels = [f"full anchor ({_n(len(full_y))} rows)", "retained rows of the draw (level mean in the last column)",
               "min–max over a level's draws"]
-    fig.legend(handles, labels, frameon=False, ncol=3, loc='lower center', bbox_to_anchor=(0.5, 0.035), fontsize=12)
-    fig.text(0.5, 0.012, "Δ mean: retained − full mean · σ ratio: retained / full std · W₁: Wasserstein distance to the full anchor",
-             ha='center', fontsize=11, color="#555555")
-    fig.suptitle(f"Retained Anchor Target Distribution per Depletion Draw ({ANCHOR_REGION})", fontsize=17,
+    fig.legend(handles, labels, frameon=False, ncol=3, loc='lower center', bbox_to_anchor=(0.5, 0.035), fontsize=12 * con.FONT_SCALE)
+    fig.text(0.5, 0.012, "Δ mean: retained − full mean · σ ratio: retained / full std · $W_1$: Wasserstein distance to the full anchor",
+             ha='center', fontsize=11 * con.FONT_SCALE, color="#555555")
+    fig.suptitle(f"Retained Anchor Target Distribution per Depletion Draw ({con.REGION_LABELS[ANCHOR_REGION]})", fontsize=17 * con.FONT_SCALE,
                  fontweight='bold', y=0.955)
 
     con.VIZ_DESC_DRAW_DISTR.parent.mkdir(parents=True, exist_ok=True)

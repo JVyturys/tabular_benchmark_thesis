@@ -11,6 +11,7 @@ output:     desc_cluster_sizes.csv, desc_cluster_key_source.csv,
 
 '''
 ##################################################
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -20,6 +21,7 @@ import config as con
 
 PARTITIONS = ['fit', 'val', 'test']
 PART_COLORS = {'fit': "#1f4e79", 'val': "#6fa8dc", 'test': "#a6a6a6"}
+PART_NAMES = {'fit': 'fit', 'val': 'validation', 'test': 'test'}     # partition names as in the methodology chapter
 TIERS = {'tier1': con.TIER1_REGS, 'tier2': con.TIER2_REGS, 'tier3': con.TIER3_REGS}
 
 
@@ -28,7 +30,8 @@ def _tier(region: int) -> str:
 
 
 def _label(region: int) -> str:
-    return f"{region}*" if region in con.TIER2_REGS else str(region)
+    name = con.REGION_LABELS[region]
+    return f"{name}*" if region in con.TIER2_REGS else name
 
 
 def _style(ax) -> None:
@@ -164,25 +167,28 @@ def target_partition_table(tiered: pd.DataFrame) -> pd.DataFrame:
 
 def plot_partitions(parts: pd.DataFrame) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     reg = parts.loc[parts['scope'].eq('region')].sort_values('rows_total', ascending=True)
     y = np.arange(len(reg))
     fig, ax = plt.subplots(figsize=(10, 7))
     left = np.zeros(len(reg))
     for p in PARTITIONS:
         share = (reg[f'rows_{p}'] / reg['rows_total']).to_numpy()
-        ax.barh(y, share, left=left, color=PART_COLORS[p], height=0.75, label=p, edgecolor='white', linewidth=0.5)
+        ax.barh(y, share, left=left, color=PART_COLORS[p], height=0.75, label=PART_NAMES[p], edgecolor='white', linewidth=0.5)
         left += share
-    for x, lab in ((con.TRAIN_SHARE * con.FIT_SHARE, 'fit target'), (con.TRAIN_SHARE, 'train target')):
+    fit_target = con.TRAIN_SHARE * con.FIT_SHARE
+    for x, lab, ha in ((fit_target, f"fit target ({fit_target:.0%}) ", 'right'),
+                       (con.TRAIN_SHARE, f" training target ({con.TRAIN_SHARE:.0%})", 'left')):
         ax.axvline(x, color="#d9534f", linestyle=":", linewidth=1.5, zorder=4)
-        ax.text(x, len(reg) - 0.3, lab, color="#d9534f", fontsize=8.5, ha='center', va='bottom')
+        ax.text(x, len(reg) - 0.3, lab, color="#d9534f", fontsize=8.5 * con.FONT_SCALE, ha=ha, va='bottom')
     for yi, n in zip(y, reg['rows_total']):
-        ax.text(1.01, yi, f"n={n:,}".replace(",", "."), va='center', fontsize=8.5, color="#555555", fontstyle='italic')
+        ax.text(1.01, yi, f"n={n:,}", va='center', fontsize=8.5 * con.FONT_SCALE, color="#555555", fontstyle='italic')
     ax.set_yticks(y)
     ax.set_yticklabels([_label(r) for r in reg['lvl3permid']])
     ax.set_xlim(0, 1)
     ax.set_title("Realised Partition Shares per Region\nRows, Tier-1 and Tier-2 (*) Regions", pad=20, fontweight='bold')
     ax.set_xlabel("Share of region rows", labelpad=10)
-    ax.set_ylabel("Level 3 PermID")
+    ax.set_ylabel("Region")
     ax.legend(frameon=False, ncol=3, loc='upper center', bbox_to_anchor=(0.5, -0.08))
     ax.grid(False)
     _style(ax)

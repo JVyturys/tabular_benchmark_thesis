@@ -11,6 +11,7 @@ output:     desc_region_balance.csv, desc_year_coverage.csv, desc_obs_per_entity
 
 '''
 ##################################################
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -29,7 +30,8 @@ def _tier(region: int) -> str:
 
 
 def _label(region: int) -> str:
-    return f"{region}*" if region in con.TIER2_REGS else str(region)
+    name = con.REGION_LABELS[region]
+    return f"{name}*" if region in con.TIER2_REGS else name
 
 
 def _style(ax) -> None:
@@ -187,6 +189,7 @@ def feature_missingness(panel: pd.DataFrame, features: list[str]) -> pd.DataFram
 
 def plot_coverage(coverage: pd.DataFrame, balance: pd.DataFrame) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     order = balance.loc[balance['tier'].isin(['tier1', 'tier2']), 'lvl3permid'].tolist()
     grid = (coverage.loc[coverage['scope'].eq('region')]
             .pivot(index='lvl3permid', columns='year', values='rows').loc[order])
@@ -195,23 +198,27 @@ def plot_coverage(coverage: pd.DataFrame, balance: pd.DataFrame) -> None:
     sns.heatmap(grid, mask=grid.eq(0), norm=LogNorm(vmin=1, vmax=grid.to_numpy().max()), cmap=cmap,
                 linewidths=0.5, linecolor='white', cbar_kws={'label': 'Observations (log scale, blank = 0)'}, ax=ax)
     ax.grid(False)
-    ax.set_yticklabels([_label(r) for r in order], rotation=0, fontsize=10)
+    ax.set_yticklabels([_label(r) for r in order], rotation=0, fontsize=10 * con.FONT_SCALE)
     ax.set_title("Observations per Region and Year\nTier-1 and Tier-2 (*) Regions", pad=15, fontweight='bold')
     ax.set_xlabel("Year", labelpad=10)
-    ax.set_ylabel("Level 3 PermID")
+    ax.set_ylabel("Region")
     _save(fig, con.VIZ_DESC_COVERAGE)
 
 
 def plot_obs_per_entity(ent: pd.DataFrame, window: int) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
+    ent = ent.loc[~ent['lvl3permid'].isin(con.TIER3_REGS)]      # the final panel excludes the Tier-3 regions
+    assert not ent.empty and ent['lvl3permid'].isin([*con.TIER1_REGS, *con.TIER2_REGS]).all(), \
+        "entity frame holds regions outside Tier 1 / Tier 2 after the Tier-3 exclusion"
     counts = ent['n_obs'].value_counts().reindex(range(1, window + 1), fill_value=0)
     median = ent['n_obs'].median()
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.bar(counts.index, counts.to_numpy(), color="#1f4e79", width=0.75, label="Entities")
     ax.axvline(median, color="#d9534f", linestyle=":", linewidth=1.5, label=f"Median: {median:g}")
     ax.set_xticks(range(1, window + 1))
-    ax.set_title(f"Panel Balance\nObservations per Entity (n = {len(ent):,})".replace(",", "."), pad=15, fontweight='bold')
-    ax.set_xlabel("Observed years per entity", labelpad=10)
+    ax.set_title(f"Panel Balance\nObservations per Entity (n = {len(ent):,} entities)", pad=15, fontweight='bold')
+    ax.set_xlabel("Observations per entity", labelpad=10)
     ax.set_ylabel("Entities")
     ax.legend(frameon=False)
     ax.grid(True, axis='y', linestyle="--", alpha=0.5)
@@ -226,7 +233,7 @@ if __name__ == '__main__':
 
     balance = region_balance(panel)
     coverage = year_coverage(panel)
-    obs, ent = obs_per_entity(panel)
+    obs, ent = obs_per_entity(panel.loc[panel['lvl3permid'].isin(con.TIER1_REGS + con.TIER2_REGS)])
     target_region = target_by_region(panel)
     target_year = target_by_year(panel)
     missing = feature_missingness(panel, features)

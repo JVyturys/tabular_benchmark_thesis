@@ -13,6 +13,7 @@ output:     desc_feature_funnel.csv, desc_feature_constants.csv, desc_imputation
 '''
 ##################################################
 import numpy as np, pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import config as con
 import utils as ut
@@ -27,7 +28,8 @@ def _tier(region: int) -> str:
 
 
 def _label(region: int) -> str:
-    return f"{region}*" if region in con.TIER2_REGS else str(region)
+    name = con.REGION_LABELS[region]
+    return f"{name}*" if region in con.TIER2_REGS else name
 
 
 def _style(ax) -> None:
@@ -165,6 +167,7 @@ def imputation_table(tiered: pd.DataFrame, status: dict[str, set]) -> pd.DataFra
 
 def plot_imputation(imp: pd.DataFrame) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     reg = imp.loc[imp['scope'].eq('region') & imp['partition'].isin(['train', 'test'])]
     wide = reg.pivot(index='lvl3permid', columns='partition', values='imputed_cell_share')
     n_train = reg.loc[reg['partition'].eq('train')].set_index('lvl3permid')['rows']
@@ -172,15 +175,15 @@ def plot_imputation(imp: pd.DataFrame) -> None:
     y = np.arange(len(wide))
     h = 0.38
     fig, ax = plt.subplots(figsize=(10, 7))
-    ax.barh(y + h / 2, wide['train'], height=h, color=PART_COLORS['train'], label='train (fit + val)')
+    ax.barh(y + h / 2, wide['train'], height=h, color=PART_COLORS['train'], label='training (fit + validation)')
     ax.barh(y - h / 2, wide['test'], height=h, color=PART_COLORS['test'], label='test')
     glob = imp.loc[imp['scope'].eq('all') & imp['partition'].eq('train'), 'imputed_cell_share'].iloc[0]
-    ax.axvline(glob, color="#d9534f", linestyle=":", linewidth=1.5, label=f"train, all regions: {glob:.3f}")
+    ax.axvline(glob, color="#d9534f", linestyle=":", linewidth=1.5, label=f"training, all regions: {glob:.3f}")
     ax.set_yticks(y)
-    ax.set_yticklabels([f"{_label(r)}  (n={n_train[r]:,})".replace(",", ".") for r in wide.index])
+    ax.set_yticklabels([f"{_label(r)}  (n={n_train[r]:,})" for r in wide.index])
     ax.set_title("Median-Imputed Cells per Region\nShare of Retained Feature Cells", pad=15, fontweight='bold')
     ax.set_xlabel("Imputed cell share", labelpad=10)
-    ax.set_ylabel("Level 3 PermID (train rows)")
+    ax.set_ylabel("Region (training rows)")
     ax.legend(frameon=False, ncol=3, loc='upper center', bbox_to_anchor=(0.5, -0.08))
     ax.grid(True, axis='x', linestyle="--", alpha=0.5)
     ax.grid(False, axis='y')

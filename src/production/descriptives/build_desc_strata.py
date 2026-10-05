@@ -6,13 +6,14 @@ input:      panel.parquet, ref_geo_table.parquet, split.parquet
             (via build_depletion_draws: _load_context_frame, _entity_mean_target, _assign_strata)
 purpose:    distribution of the anchor's entity mean target over its train+val (fit + val) rows,
             with the quantile edges of the depletion strata; each row carries its entity's mean,
-            so the bars show row mass, the outline shows entity counts
+            bars show row mass, stacked by stratum
 output:     desc_depletion_strata.csv - stratum, edge_low, edge_high, entities, rows, shares,
                                         mean of entity means
             depletion_strata.png
 '''
 ##################################################
 import numpy as np, pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import config as con
@@ -23,7 +24,7 @@ N_BINS = 50
 
 
 def _n(x) -> str:
-    return f"{int(x):,}".replace(",", ".")
+    return f"{int(x):,}"
 
 
 def build_strata() -> tuple[pd.DataFrame, np.ndarray, pd.DataFrame]:
@@ -56,6 +57,7 @@ def build_strata() -> tuple[pd.DataFrame, np.ndarray, pd.DataFrame]:
 
 def plot_strata(ent: pd.DataFrame, edges: np.ndarray, tab: pd.DataFrame) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     bins = np.linspace(0, 1, N_BINS + 1)
     cmap = plt.get_cmap("Blues")
     colors = [cmap(0.4 + 0.55 * s / max(N_STRATA - 1, 1)) for s in range(N_STRATA)]
@@ -67,34 +69,34 @@ def plot_strata(ent: pd.DataFrame, edges: np.ndarray, tab: pd.DataFrame) -> None
         g = ent.loc[ent['stratum'].eq(s)]
         h, _ = np.histogram(g['entity_mean'], bins=bins, weights=g['rows'] / total_rows)
         ax.bar(bins[:-1], h, width=np.diff(bins), bottom=bottom, align='edge', color=colors[s],
-               edgecolor='white', linewidth=0.5, label=f"stratum {s + 1}")
+               edgecolor='white', linewidth=0.5, label=f"stratum S{s + 1}")
         bottom += h
-    ent_h, _ = np.histogram(ent['entity_mean'], bins=bins, weights=np.full(total_ents, 1 / total_ents))
-    assert np.isclose(bottom.sum(), 1) and np.isclose(ent_h.sum(), 1)
-    ax.stairs(ent_h, bins, color="#333333", lw=1.4, label="entity share (unweighted)", zorder=4)
+    assert np.isclose(bottom.sum(), 1), "row-weighted bars do not sum to 100%"
 
     for e in edges[1:-1]:
         ax.axvline(e, color="#d9534f", ls=":", lw=1.8, zorder=5)
-    y_top = max(bottom.max(), ent_h.max()) * 1.32
+    y_top = bottom.max() * 1.45
     ax.set_ylim(0, y_top)
     for _, r in tab.iterrows():
         x = (r['edge_low'] + r['edge_high']) / 2
-        ax.text(x, y_top * 0.97, f"S{int(r['stratum']) + 1}\n{_n(r['entities'])} ent. · {r['row_share']:.0%} rows",
-                ha='center', va='top', fontsize=10, color="#333333", linespacing=1.4)
+        ax.text(x, y_top * 0.97, f"S{int(r['stratum']) + 1}\n{_n(r['entities'])} ent.\n{r['row_share']:.0%} rows",
+                ha='center', va='top', fontsize=10 * con.FONT_SCALE, color="#333333", linespacing=1.4)
     for e in edges[1:-1]:
-        ax.text(e + 0.006, y_top * 0.8, f"{e:.3f}", ha='left', va='center', fontsize=10, color="#d9534f",
+        ax.text(e + 0.006, y_top * 0.72, f"{e:.3f}", ha='left', va='center', fontsize=10 * con.FONT_SCALE, color="#d9534f",
                 bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='none'), zorder=6)
 
     ax.set_xlim(0, 1)
     ax.yaxis.set_major_formatter(mticker.PercentFormatter(1.0))
-    ax.set_title(f"Anchor Entity Mean Target and Depletion Strata ({ANCHOR_REGION})\n"
-                 f"Train+val rows, n = {_n(total_rows)} rows · {_n(total_ents)} entities", pad=15, fontweight='bold')
-    ax.set_xlabel("Entity mean ESG Combined Score (train+val)", labelpad=10)
-    ax.set_ylabel("Share per bin")
+    ax.set_title(f"Anchor Entity Mean Target and Depletion Strata ({con.REGION_LABELS[ANCHOR_REGION]})\n"
+                 f"anchor training rows (fit + validation), n = {_n(total_rows)} rows · {_n(total_ents)} entities",
+                 pad=15, fontweight='bold')
+    ax.set_xlabel("Entity mean ESG Combined Score", labelpad=10)
+    ax.set_ylabel(f"Share of rows per bin (width {1 / N_BINS:.2f})")
     handles, labels = ax.get_legend_handles_labels()
     handles.append(plt.Line2D([], [], color="#d9534f", ls=":", lw=1.8))
     labels.append("stratum edge (entity quartile)")
-    ax.legend(handles, labels, frameon=False, ncol=3, loc='upper center', bbox_to_anchor=(0.5, -0.13), fontsize=10)
+    ax.legend(handles, labels, frameon=False, ncol=len(labels), loc='upper center', bbox_to_anchor=(0.5, -0.14),
+              fontsize=10 * con.FONT_SCALE)
     ax.grid(True, axis='y', linestyle="--", alpha=0.5)
     ax.grid(False, axis='x')
     ax.spines['top'].set_visible(False)

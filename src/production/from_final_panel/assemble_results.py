@@ -6,7 +6,7 @@ input:      results_*.yaml in PRED_DIR_MAN, FTT_VAL_TRIALS, ICL_SCORES (non-recu
             depletion_counts.parquet
 purpose:    assemble every run manifest into frames and derive the reported
             results.
-output:     TAB_AGGREGATE, TAB_PER_REGION, TAB_DID, TAB_GAP_CURVE, TAB_HEADLINE (csv)
+output:     TAB_AGGREGATE, TAB_PER_REGION, TAB_DID, TAB_GAP_CURVE, TAB_HEADLINE, TAB_GAP_CONTRIB (csv)
             VIZ_GAP_CURVE (png)
 
 '''
@@ -14,6 +14,7 @@ output:     TAB_AGGREGATE, TAB_PER_REGION, TAB_DID, TAB_GAP_CURVE, TAB_HEADLINE 
 import yaml
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import config as con
@@ -25,7 +26,7 @@ GAP_COLS = {"regional bias gap": "gap_r_sq", "regional bias gap rmse": "gap_rmse
 N_COLS = ["level", "draw", "anchor_rows_retained", "anchor_entities_retained"]
 REGION_METRICS = ["rmse_r", "r_sq", "r_sq_reg"]
 
-MODEL_LABELS = {"rf": "RF", "xgb": "XGBoost", "ftt": "FT-Transformer", "tabicl": "TabICL", "tabpfn3": "TabPFN-3"}
+MODEL_LABELS = {"rf": "RF", "xgb": "XGBoost", "ftt": "FT-Transformer", "tabicl": "TabICLv2", "tabpfn3": "TabPFN-3"}
 MODEL_COLORS = {"rf": "#1f4e79", "xgb": "#6fa8dc", "ftt": "#c0392b", "tabicl": "#2e8b57", "tabpfn3": "#e69f00"}
 
 
@@ -33,7 +34,7 @@ def load_manifests() -> tuple[pd.DataFrame, pd.DataFrame]:
     """-> runs (one row per manifest), regions (one row per manifest x Tier-1 region)."""
     runs, regions = [], []
     for d in SCORE_DIRS:
-        for path in sorted(d.glob("results_*.yaml")):  # non-recursive: the env-check report stays out
+        for path in sorted(d.glob("results_*.yaml")): 
             m = yaml.safe_load(path.read_text(encoding="utf-8"))
             key = {k: m["meta"][k] for k in KEY}
             runs.append({**key, **m["metrics"], "file": path.name})
@@ -43,13 +44,10 @@ def load_manifests() -> tuple[pd.DataFrame, pd.DataFrame]:
     assert len(runs) == 96 and not runs.duplicated(KEY).any()
     assert regions.groupby(KEY).size().eq(13).all()
 
-    # (1 - r_sq)/(1 - r_sq_reg) = sigma2_r / sigma2_global: predictions cancel, only the frozen
-    # test targets remain, so any drift means a run was scored on a different test set or denominator
     ratio = (1 - regions["r_sq"]) / (1 - regions["r_sq_reg"])
     ref = ratio.groupby(regions["region"]).transform("first")
     assert np.allclose(ratio, ref, rtol=con.INVARIANT_RTOL, atol=0), "test-set variance ratio differs between runs"
     return runs, regions
-
 
 def attach_realised_n(frame: pd.DataFrame) -> pd.DataFrame:
     """Realised anchor train+val rows and entities per condition, from the frozen counts artifact.
@@ -68,8 +66,6 @@ def attach_realised_n(frame: pd.DataFrame) -> pd.DataFrame:
     assert lookup["condition"].is_unique
     assert (lookup.loc[lookup["condition"].ne("undepl"), "anchor_rows_retained"] < full_rows[0]).all()
 
-    # tag format is duplicated from run_ICL_depletion_grid._condition_tag (import would pull in run_icl);
-    # set equality below catches any drift between the two
     depl_tags = set(frame.loc[frame["condition"].ne("undepl"), "condition"])
     grid_tags = set(lookup["condition"]) - {"undepl"}
     assert depl_tags == grid_tags, f"runs-only {sorted(depl_tags - grid_tags)}, counts-only {sorted(grid_tags - depl_tags)}"
@@ -88,7 +84,6 @@ def gap_curve(runs: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     shares = [f"share_removed_{g}" for g in gaps]
     assert set(N_COLS) <= set(runs.columns), "run attach_realised_n first"
 
-    # only configurations with a depletion curve; drops rf/baseline
     has_curve = runs.loc[runs["condition"].ne("undepl"), CURVE_KEYS].drop_duplicates()
     points = runs.merge(has_curve, on=CURVE_KEYS, how="inner")
     points = points[KEY + N_COLS + list(GAP_COLS)].rename(columns=GAP_COLS)
@@ -105,7 +100,6 @@ def gap_curve(runs: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         points[s] = (points[f"{g}_undepl"] - points[g]) / points[f"{g}_undepl"]
     assert np.allclose(points.loc[points["condition"].eq("undepl"), shares], 0.0)
 
-    # mean and min-max only: 2-5 draws per level do not support a dispersion estimate
     summary = points.groupby(CURVE_KEYS + ["level"], dropna=False).agg(
         n_draws=("draw", "size"),
         anchor_rows_mean=("anchor_rows_retained", "mean"),
@@ -113,7 +107,6 @@ def gap_curve(runs: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     ).reset_index()
     assert summary["n_draws"].sum() == len(points)
 
-    # denominator check: undepl gap against the draw noise of the same model
     print(f"    [+++] undepl gap vs. draw noise (largest within-level min-max range)")
     for g, s in zip(gaps, shares):
         noise = summary.assign(r=summary[f"{g}_max"] - summary[f"{g}_min"]).groupby(CURVE_KEYS)["r"].max()
@@ -142,7 +135,6 @@ def did_table(regions: pd.DataFrame) -> pd.DataFrame:
     comparators = [r for r in con.TIER1_REGS if r != con.ANCHOR_REGION]
     assert len(comparators) == 12 and con.EQUAL_N_REGION in comparators
 
-    # 1. change per region against the own undepleted base
     is_base = regions["condition"].eq("undepl")
     base = regions.loc[is_base, base_key + ["r_sq"]].rename(columns={"r_sq": "r_sq_base"})
     depl = regions.loc[~is_base, KEY + ["region", "r_sq"]]
@@ -153,11 +145,9 @@ def did_table(regions: pd.DataFrame) -> pd.DataFrame:
     assert delta["r_sq_base"].notna().all(), "depleted run without an undepl base of the same configuration"
     delta["d_r_sq"] = delta["r_sq_base"] - delta["r_sq"]
 
-    # 2. split into anchor, comparators, equal-N region
     wide = delta.pivot(index=KEY, columns="region", values="d_r_sq")  # raises on duplicate (KEY, region)
     assert set(wide.columns) == set(con.TIER1_REGS) and wide.notna().all().all()
 
-    # 3.-4. reduce comparators, form the differences
     out = pd.DataFrame({
         "d_anchor": wide[con.ANCHOR_REGION],
         "d_comp": wide[comparators].mean(axis=1),
@@ -171,6 +161,49 @@ def did_table(regions: pd.DataFrame) -> pd.DataFrame:
     assert not out["configuration"].eq("baseline").any()
     return out
 
+def gap_contributions(runs: pd.DataFrame, regions: pd.DataFrame) -> pd.DataFrame:
+    """Region contributions to the change of the performance gap (methodology Section 3.5).
+
+    Per model x depleted condition x Tier-1 region: w_r = n_r / N (Tier-1 test rows), k_r = w_r - 1/|R|,
+    delta_r_sq = R2_glob(r, undepl) - R2_glob(r, condition) (positive = loss of accuracy),
+    contribution = k_r * delta_r_sq, delta_gap = G_u - G_c (positive = narrowing), share = contribution / delta_gap.
+    As G = sum_r k_r R2_glob(r) (Section 3.4), the contributions sum to delta_gap - checked against the
+    manifests' gap - and the shares to one. Base = same model AND configuration at undepl.
+    """
+    n_r = regions.groupby("region")["n_r"].agg(["min", "max"])
+    assert n_r["min"].eq(n_r["max"]).all(), "a region's test rows differ between runs"
+    assert set(n_r.index) == set(con.TIER1_REGS), "contribution regions are not the Tier-1 regions"
+    w = n_r["min"] / n_r["min"].sum()
+    k = w - 1 / len(w)
+    assert np.isclose(w.sum(), 1.0, rtol=0, atol=1e-12) and np.isclose(k.sum(), 0.0, rtol=0, atol=1e-12)
+
+    base_key = ["model", "configuration", "region"]
+    is_base = regions["condition"].eq("undepl")
+    base = regions.loc[is_base, base_key + ["r_sq"]].rename(columns={"r_sq": "r_sq_undepl"})
+    assert not base.duplicated(base_key).any()
+    out = regions.loc[~is_base, KEY + ["region", "n_r", "r_sq"]].merge(base, on=base_key, how="left", validate="many_to_one")
+    assert len(out) == (~is_base).sum(), "merge changed row count"
+    assert out["r_sq_undepl"].notna().all(), "depleted run without an undepl base of the same configuration"
+    out["w_r"] = out["region"].map(w)
+    out["k_r"] = out["region"].map(k)
+    out["delta_r_sq"] = out["r_sq_undepl"] - out["r_sq"]
+    out["contribution"] = out["k_r"] * out["delta_r_sq"]
+
+    gap = runs.set_index(KEY)["regional bias gap"]
+    g_u = runs.loc[runs["condition"].eq("undepl")].set_index(CURVE_KEYS)["regional bias gap"]
+    dg = pd.DataFrame({"delta_gap": [g_u.loc[(m, c)] - gap.loc[(m, c, cond)] for m, c, cond in gap.index]},
+                      index=gap.index)
+    out = out.merge(dg.reset_index(), on=KEY, how="left", validate="many_to_one")
+    assert out["delta_gap"].notna().all()
+    sums = out.groupby(KEY).agg(contribution=("contribution", "sum"), delta_gap=("delta_gap", "first"))
+    assert np.allclose(sums["contribution"], sums["delta_gap"], rtol=con.INVARIANT_RTOL, atol=1e-12), \
+        "contributions do not add up to the change of the manifests' gap - G = sum k_r R2_glob broken"
+    assert (sums["delta_gap"] != 0).all(), "delta G exactly 0 - share undefined"
+
+    out["share"] = out["contribution"] / out["delta_gap"]
+    assert np.allclose(out.groupby(KEY)["share"].sum(), 1.0, rtol=0, atol=1e-6), "shares do not sum to one"
+    cols = KEY + ["region", "n_r", "w_r", "k_r", "r_sq_undepl", "r_sq", "delta_r_sq", "contribution", "delta_gap", "share"]
+    return out[cols].sort_values(KEY + ["region"]).reset_index(drop=True)
 
 def headline_changes(runs: pd.DataFrame) -> pd.DataFrame:
     """Relative change per metric, deepest level vs undepleted, per model; one column per metric.
@@ -190,7 +223,7 @@ def headline_changes(runs: pd.DataFrame) -> pd.DataFrame:
     base = runs.loc[runs["condition"].eq("undepl")].set_index(CURVE_KEYS)[metrics]
     deep_mean = deep.groupby(CURVE_KEYS)[metrics].mean()
     assert deep_mean.index.isin(base.index).all()
-    base = base.loc[deep_mean.index]  # drops rf/baseline
+    base = base.loc[deep_mean.index]  
     assert (base != 0).all().all(), "undepl metric exactly 0 - relative change undefined"
 
     out = (deep_mean - base) / base.abs()
@@ -198,13 +231,15 @@ def headline_changes(runs: pd.DataFrame) -> pd.DataFrame:
     out.insert(1, "n_draws", int(n_draws.iloc[0]))
     return out.reset_index()
 
-
 def plot_gap_curve(points: pd.DataFrame, summary: pd.DataFrame) -> None:
-    """R2 gap over realised anchor rows (log): level means as lines, draws as points, undepl marked."""
+    """Performance gap G = R2_P - R2_M over realised anchor rows (log): level means as lines, draws as points,
+    undepl marked - methodology Section 3.5 plots G itself rather than the share S removed."""
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    for (model, cfg), s in summary.groupby(CURVE_KEYS):
+    rank = {m: i for i, m in enumerate(MODEL_COLORS)}      
+    for (model, cfg), s in sorted(summary.groupby(CURVE_KEYS), key=lambda kv: rank[kv[0][0]]):
         color = MODEL_COLORS[model]
         s = s.sort_values("anchor_rows_mean")
         p = points.loc[(points["model"] == model) & (points["configuration"] == cfg)]
@@ -231,9 +266,10 @@ def plot_gap_curve(points: pd.DataFrame, summary: pd.DataFrame) -> None:
     labels += ["individual draw", "undepleted (full anchor)"]
     ax.legend(handles, labels, frameon=False, loc="best")
 
-    ax.set_title(f"Tier-1 Regional Bias Gap under Anchor Depletion ({con.ANCHOR_REGION})", pad=15, fontweight='bold')
-    ax.set_xlabel("Realised anchor rows, train+val (log scale)", labelpad=10)
-    ax.set_ylabel("Regional bias gap (R², global scale)")
+    ax.set_title(f"Tier-1 Performance Gap under Anchor Depletion ({con.REGION_LABELS[con.ANCHOR_REGION]})",
+                 pad=15, fontweight='bold')
+    ax.set_xlabel("Realised anchor training rows (fit + validation, log scale)", labelpad=10)
+    ax.set_ylabel(r"Performance gap $G = R^2_P - R^2_M$")
 
     ax.grid(True, axis='y', linestyle="--", alpha=0.5)
     ax.grid(False, axis='x')
@@ -247,7 +283,6 @@ def plot_gap_curve(points: pd.DataFrame, summary: pd.DataFrame) -> None:
     plt.savefig(con.VIZ_GAP_CURVE, dpi=600, bbox_inches='tight')
     plt.show()
 
-
 if __name__ == "__main__":
     print(f"\n[°°°] assembling results - anchor {con.ANCHOR_REGION}, equal-N region {con.EQUAL_N_REGION} [°°°]\n")
 
@@ -260,6 +295,8 @@ if __name__ == "__main__":
 
     points, summary = gap_curve(runs)
     headline = headline_changes(runs)
+    contrib = attach_realised_n(gap_contributions(runs, regions))
+    print(f"    [+++] gap contributions - {len(contrib)} rows, contributions add up to delta G in every condition")
 
     is_undepl = runs["condition"].eq("undepl")
     aggregate = runs.loc[is_undepl].drop(columns=["condition", "level", "draw"])
@@ -268,7 +305,8 @@ if __name__ == "__main__":
 
     con.RESULTS_TABLES.mkdir(parents=True, exist_ok=True)
     for frame, path in ((aggregate, con.TAB_AGGREGATE), (per_region, con.TAB_PER_REGION),
-                        (did, con.TAB_DID), (summary, con.TAB_GAP_CURVE), (headline, con.TAB_HEADLINE)):
+                        (did, con.TAB_DID), (summary, con.TAB_GAP_CURVE), (headline, con.TAB_HEADLINE),
+                        (contrib, con.TAB_GAP_CONTRIB)):
         frame.to_csv(path, index=False)
         print(f"      [---] written {path.name} - {frame.shape[0]} rows x {frame.shape[1]} cols")
 

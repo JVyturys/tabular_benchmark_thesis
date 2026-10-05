@@ -14,6 +14,7 @@ output:     desc_prediction_by_region.csv, desc_prediction_levels.csv,
 '''
 ##################################################
 import numpy as np, pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import config as con
@@ -123,43 +124,51 @@ def _curves(pred: pd.DataFrame) -> pd.DataFrame:
 
 def plot_residual_bias(pred: pd.DataFrame) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     und = _curves(pred)
     und = und.loc[und['condition'].eq(UNDEPL) & und['scope'].eq('region') & und['tier'].eq('tier1')]
     order = und.groupby('lvl3permid')['n'].first().sort_values(ascending=True)
     models = [m for m in MODEL_COLORS if m in set(und['model'])]
-    y = np.arange(len(order))
-    step = 0.7 / len(models)
-    fig, ax = plt.subplots(figsize=(10, 7))
-    for i, m in enumerate(models):
-        s = und.loc[und['model'].eq(m)].set_index('lvl3permid').loc[order.index]
-        ax.scatter(s['mean_residual'], y - 0.35 + (i + 0.5) * step, color=MODEL_COLORS[m], s=24, zorder=3,
-                   label=MODEL_LABELS[m])
-    ax.axvline(0, color="#333333", lw=0.9, zorder=1)
-    ax.set_yticks(y)
-    ax.set_yticklabels([f"{r}  (n={n:,})".replace(",", ".") for r, n in order.items()])
-    ax.set_title("Mean Residual per Tier-1 Region, Undepleted\n(prediction - target; positive = over-prediction)",
-                 pad=15, fontweight='bold')
-    ax.set_xlabel("Mean residual (ESG score, native [0,1])", labelpad=10)
-    ax.set_ylabel("Level 3 PermID (test rows)")
-    ax.legend(frameon=False, ncol=len(models), loc='upper center', bbox_to_anchor=(0.5, -0.08))
-    ax.grid(True, axis='x', linestyle="--", alpha=0.5)
-    ax.grid(False, axis='y')
-    _style(ax)
+    # plotted value is mean(y_pred - y_true), the negative of the methodology's residual y_i - y_hat_i
+    values = und.pivot(index='lvl3permid', columns='model', values='mean_residual').loc[order.index, models]
+    assert values.notna().all().all(), "missing region x model mean prediction error"
+
+    # one panel per model, one bar per region from zero, shared symmetric x range
+    y, lim = np.arange(len(values)), np.abs(values.to_numpy()).max() * 1.1
+    fig, axes = plt.subplots(1, len(models), figsize=(16, 7), sharey=True, squeeze=False)
+    axes = axes[0]
+    for ax, m in zip(axes, models):
+        ax.barh(y, values[m], color=MODEL_COLORS[m], height=0.65, zorder=3)
+        ax.axvline(0, color="#333333", lw=0.9, zorder=4)
+        ax.set_xlim(-lim, lim)
+        ax.set_title(MODEL_LABELS[m], fontweight='bold', pad=8)
+        ax.grid(True, axis='x', linestyle="--", alpha=0.5)
+        ax.grid(False, axis='y')
+        _style(ax)
+    axes[0].set_yticks(y)
+    axes[0].set_yticklabels([f"{con.REGION_LABELS[r]}  (n={n:,})" for r, n in order.items()])
+    axes[0].set_ylim(-0.5, len(values) - 0.5)
+    axes[0].set_ylabel(r"Region (test rows $n_r$)")
+    fig.supxlabel(r"Mean of $\hat{y}_i - y_i$ (ESG Combined Score, native 0–1 scale)")
+    fig.suptitle("Mean Prediction Error per Tier-1 Region, Undepleted\n"
+                 r"($\hat{y}_i - y_i$; positive = over-prediction)", fontweight='bold')
     _save(fig, con.VIZ_DESC_RESID_BIAS)
 
 
 def plot_dispersion(pred: pd.DataFrame) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     cur = _curves(pred)
     cur = cur.loc[cur['scope'].eq('region') & cur['tier'].eq('tier1')]
     anchor = cur.loc[cur['lvl3permid'].eq(con.ANCHOR_REGION)]
     comp = (cur.loc[cur['lvl3permid'].ne(con.ANCHOR_REGION)]
                .groupby(KEY + ['level', 'anchor_rows_retained'], dropna=False)['dispersion_ratio'].mean().reset_index())
     assert len(comp) == len(anchor)
+    n_comp = cur.loc[cur['lvl3permid'].ne(con.ANCHOR_REGION), 'lvl3permid'].nunique()
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=True)
-    for ax, frame, title in ((axes[0], anchor, f"Anchor {con.ANCHOR_REGION}"),
-                             (axes[1], comp, "Comparators (unweighted mean, 12 Tier-1 regions)")):
+    for ax, frame, title in ((axes[0], anchor, f"Anchor: {con.REGION_LABELS[con.ANCHOR_REGION]}"),
+                             (axes[1], comp, f"Comparators: unweighted mean of the other {n_comp} Tier-1 regions")):
         for m in [m for m in MODEL_COLORS if m in set(frame['model'])]:
             f = frame.loc[frame['model'].eq(m)]
             is_u = f['condition'].eq(UNDEPL)
@@ -176,11 +185,11 @@ def plot_dispersion(pred: pd.DataFrame) -> None:
         ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:,.0f}"))
         ax.xaxis.set_minor_locator(mticker.NullLocator())
         ax.set_title(title, pad=10, fontweight='bold')
-        ax.set_xlabel("Realised anchor rows, train+val (log scale)", labelpad=10)
+        ax.set_xlabel("Realised anchor training rows (fit + validation, log scale)", labelpad=10)
         ax.grid(True, axis='y', linestyle="--", alpha=0.5)
         ax.grid(False, axis='x')
         _style(ax)
-    axes[0].set_ylabel("Dispersion ratio  std(prediction) / std(target)")
+    axes[0].set_ylabel(r"Dispersion ratio $\sigma_{\hat{y},r}\,/\,\sigma_r$")
     handles, labels = axes[0].get_legend_handles_labels()
     handles += [plt.Line2D([], [], ls="none", marker="o", ms=5, color="#888888", alpha=0.45),
                 plt.Line2D([], [], ls="none", marker="D", ms=6, mfc="white", mec="#888888")]

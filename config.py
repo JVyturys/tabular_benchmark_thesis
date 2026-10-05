@@ -51,13 +51,12 @@ FTT_VAL_TRIALS = PROJECT_ROOT / "model_scores" /"ftt_scores"
 CTX_CAP_CHECK = RESULTS_DIR / "exploration" / "hardware"
 ICL_SCORES = PROJECT_ROOT / "model_scores" /"icl_scores"
 VIZ = RESULTS_DIR / "visualization"
-VIZ_WD = VIZ / "wassersteindist.png"
-VIZ_TDIST = VIZ / "target_distr_preg.png" 
+VIZ_DESC_DIR = VIZ / "descriptives"    
 VIZ_CUTOFF = VIZ / "cutoff_kneedle.png"
 VIZ_NAN_SHARE = VIZ / "total_nan_shares_per_region.png"
 VIZ_USABLE_DROPPED = VIZ / "dropped_usable_features.png"
 VIZ_RMSE = VIZ / "ft_epoch_rmse_curve.png"
-VIZ_ESG_COVERAGE = VIZ / "esg_coverage_per_region.png"
+VIZ_ESG_COVERAGE = VIZ_DESC_DIR / "esg_coverage_per_region.png"      # was VIZ / "esg_coverage_per_region.png"
 
 # ESG COVERAGE ANALYSIS
 COVERAGE_MIN_RESOLUTION = 0.5   # below: most rated firm-years of a region cannot enter the numerator
@@ -69,10 +68,10 @@ TAB_PER_REGION = RESULTS_TABLES / "per_region_undepl.csv"
 TAB_DID = RESULTS_TABLES / "did_r_sq.csv"
 TAB_GAP_CURVE = RESULTS_TABLES / "gap_curve.csv"
 TAB_HEADLINE = RESULTS_TABLES / "headline_changes.csv"
-VIZ_GAP_CURVE = VIZ / "gap_curve_r_sq.png"
+TAB_GAP_CONTRIB = RESULTS_TABLES / "gap_contributions.csv"
+VIZ_GAP_CURVE = VIZ_DESC_DIR / "gap_curve_r_sq.png"
 ## DESCRIPTIVE STATISTICS - src/production/descriptives/build_desc_*.py
 DESC_DIR = RESULTS_DIR / "descriptives"
-VIZ_DESC_DIR = VIZ / "descriptives"
 ### raw
 TAB_DESC_ATTRITION = DESC_DIR / "desc_attrition.csv"
 ### panel
@@ -84,6 +83,7 @@ TAB_DESC_TARGET_YEAR = DESC_DIR / "desc_target_by_year.csv"
 TAB_DESC_FEATURE_NAN = DESC_DIR / "desc_feature_missingness.csv"
 VIZ_DESC_COVERAGE = VIZ_DESC_DIR / "coverage_region_year.png"
 VIZ_DESC_OBS_PER_ENTITY = VIZ_DESC_DIR / "obs_per_entity.png"
+VIZ_DESC_TARGET_DIST = VIZ_DESC_DIR / "target_distribution_by_region.png"
 ### clusters & split
 TAB_DESC_CLUSTER_SIZES = DESC_DIR / "desc_cluster_sizes.csv"
 TAB_DESC_CLUSTER_SOURCE = DESC_DIR / "desc_cluster_key_source.csv"
@@ -114,12 +114,15 @@ TAB_DESC_METRIC_REGION_SIZE = DESC_DIR / "desc_metric_region_size.csv"
 VIZ_DESC_METRIC_CURVES = VIZ_DESC_DIR / "metric_curves.png"
 VIZ_DESC_REGION_DELTA = VIZ_DESC_DIR / "region_delta_r_sq_deepest.png"
 VIZ_DESC_REGION_SIZE = VIZ_DESC_DIR / "region_r_sq_vs_size.png"
+VIZ_DESC_ANCHOR_CURVE = VIZ_DESC_DIR / "anchor_learning_curve.png"
+VIZ_DESC_SCALE_IDENTITY = VIZ_DESC_DIR / "r_sq_scale_identity.png"
 ### assembled results (assemble_results tables)
 VIZ_DESC_POOLED_MACRO = VIZ_DESC_DIR / "pooled_vs_macro_r_sq.png"
 VIZ_DESC_REGION_HEATMAP = VIZ_DESC_DIR / "region_r_sq_heatmap.png"
 VIZ_DESC_GAP_SHARE = VIZ_DESC_DIR / "gap_share_removed.png"
 VIZ_DESC_DID = VIZ_DESC_DIR / "did_decomposition.png"
 VIZ_DESC_HEADLINE = VIZ_DESC_DIR / "headline_changes.png"
+VIZ_DESC_GAP_CONTRIB = VIZ_DESC_DIR / "gap_contributions.png"
 ### depletion design schematic
 TAB_DESC_DEPL_DESIGN = DESC_DIR / "desc_depletion_design_facts.csv"
 VIZ_DESC_DEPL_DESIGN = VIZ_DESC_DIR / "depletion_design_schematic.png"
@@ -174,6 +177,9 @@ REGION_LABELS = {100089: 'Eastern Asia',
                  100060: 'Central Asia',
                  110000: 'Melanesia',
                  100057: 'Middle Africa'}   # not in panel; appears in the ESG coverage figure
+
+# PLOT STYLE
+FONT_SCALE = 1.2    
 
 
 # SPLIT PARAMETERS

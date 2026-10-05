@@ -8,7 +8,8 @@ purpose: determine shape of the target variable globally
         and per region,
         determine regional shift against reference region
         using the Wasserstein-Distance as a distance metric       
-output: plots: target distribution per region, Distribution of wasserstein distance
+output: printed table below; the region figure (distribution + Wasserstein distance) is built by
+        src.production.descriptives.build_desc_target_distribution
 
 
             count      mean       std       min       q25       q75       max  Wasserstein_dist
@@ -35,9 +36,6 @@ output: plots: target distribution per region, Distribution of wasserstein dista
 import pandas as pd
 import config as con
 from scipy.stats import wasserstein_distance as wd
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-import seaborn as sns
 
 # load data
 panel = pd.read_parquet(con.PANEL)
@@ -55,7 +53,7 @@ df_target = df_target.merge(df_geo, on="orgpermid", how="left")
 
 assert df_target.isna().sum().sum() == 0, "DataFrame contains missing values."
 
-# query R² breakout relevant regions
+# query R^2 breakout relevant regions
 df_target_t1 = df_target.query('lvl3permid.isin(@tier1_regs)')
 
 # determine WassersteinDistance(WS)-reference-region based on observation frequency
@@ -77,113 +75,3 @@ grp_target = df_target_t1.groupby('lvl3permid', dropna = False).agg(
 ).sort_values('count', ascending=False)
 
 print(grp_target)
-
-
-# plot
-## plot WD barplot
-plt.style.use('seaborn-v0_8-whitegrid')
-
-
-wd_sorted = grp_target['Wasserstein_dist'].sort_values(ascending=True)
-
-fig, ax = plt.subplots(figsize=(10, 6))
-
-wd_sorted.plot(
-    kind='barh',
-    color="#1f4e79",  
-    ax=ax,
-    width=0.75
-)
-
-ax.set_title(
-    "Wasserstein Distance from Reference Region (100089)",
-    pad=15,
-    fontweight='bold'
-)
-ax.set_xlabel("Distance", labelpad=10)
-ax.set_ylabel("Region")
-
-# add vertical grid lines 
-ax.grid(True, axis='x', linestyle="--", alpha=0.5)
-ax.grid(False, axis='y')
-
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.spines['left'].set_color('#cccccc')
-ax.spines['bottom'].set_color('#cccccc')
-
-plt.tight_layout()
-plt.savefig(con.VIZ_WD, dpi=600, bbox_inches='tight')
-plt.show()
-
-
-## plot target dist per region - sample size sorted boxplots with logscale color gradient 
-plt.style.use('seaborn-v0_8-whitegrid')
-
-group_counts = df_target_t1["lvl3permid"].value_counts()
-group_order = group_counts.index
-
-norm = LogNorm(vmin=group_counts.min(), vmax=group_counts.max())
-cmap = plt.get_cmap("Blues")
-color_palette = {
-    group: cmap(0.35 + 0.65 * norm(count)) for group, count in group_counts.items()
-}
-
-fig, ax = plt.subplots(figsize=(14, 7))
-
-sns.boxplot(
-    data=df_target_t1,
-    x="lvl3permid",
-    y="esg_combined_score",
-    order=group_order,
-    hue="lvl3permid",
-    palette=color_palette,
-    legend=False,
-    ax=ax,
-    linewidth=1.2,
-    fliersize=3
-)
-
-y_min = df_target_t1["esg_combined_score"].min()
-y_max = df_target_t1["esg_combined_score"].max()
-y_range = y_max - y_min
-ax.set_ylim(y_min - y_range * 0.02, y_max + y_range * 0.18)
-
-ax.set_xticks(range(len(group_order)))
-ax.set_xticklabels(group_order, rotation=45, ha="right", fontsize=10)
-
-for i, group in enumerate(group_order):
-    count = group_counts[group]
-    formatted_count = f"n={count:,}".replace(",", ".")
-
-    ax.text(
-        x=i,
-        y=y_max + (y_range * 0.03),
-        s=formatted_count,
-        ha="left",  
-        va="bottom",
-        rotation=45,  
-        fontsize=8.5,
-        color="#555555",
-        fontstyle="italic",
-    )
-
-ax.set_title(
-    "ESG Combined Score Distribution\nPer Region",
-    pad=15,
-    fontweight='bold'
-)
-ax.set_xlabel("Level 3 PermID", labelpad=10)
-ax.set_ylabel("ESG Combined Score")
-
-ax.grid(True, axis='y', linestyle="--", alpha=0.5)
-ax.grid(False, axis='x')
-
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.spines['left'].set_color('#cccccc')
-ax.spines['bottom'].set_color('#cccccc')
-
-plt.tight_layout()
-plt.savefig(con.VIZ_TDIST, dpi=600, bbox_inches='tight')
-plt.show()

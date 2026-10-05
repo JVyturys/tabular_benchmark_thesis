@@ -195,7 +195,7 @@ def vl_cut_off(x):
     ax.set_ylabel("Variance Loss")
     ax.set_title(
         f"Variance Loss Based Feature Selection\n"
-        f"Number of excluded fetures: {(x>x.loc[max_dist_idx]).sum()}", 
+        f"Number of excluded features: {(x>x.loc[max_dist_idx]).sum()}", 
         fontweight='bold'
     )
 

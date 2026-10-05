@@ -32,7 +32,7 @@ def _tag(level: int, draw: int) -> str:
 
 
 def _n(x) -> str:
-    return f"{int(x):,}".replace(",", ".")
+    return f"{int(x):,}"
 
 
 def _relation(v: dict, short: bool) -> str:
@@ -217,7 +217,7 @@ def plot_flow(ax, v: dict) -> None:
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 32)
     rel = {'brackets': "brackets it", 'below': "all draws below", 'above': "all draws above"}[v['bottom_vs_equal_n']]
-    _box(ax, 0, 17, 18, 15, "Anchor · East Asia", [
+    _box(ax, 0, 17, 18, 15, "Anchor · Eastern Asia", [
         f"{_n(v['anchor_rows_tv'])} rows", f"{_n(v['anchor_entities_tv'])} entities",
         f"{v['anchor_test_share']:.0%} of Tier-1 test"], C_MAIN, FACE_MAIN)
     _box(ax, 0, 0, 18, 15, f"Equal-N · {v['equal_n_region']}", [
@@ -229,7 +229,7 @@ def plot_flow(ax, v: dict) -> None:
         f"{v['n_conditions']} conditions", f"draws {v['repeats']}", "identical context",
         f"✓ {v['manifests_frozen_context']}"], C_MAIN, FACE_MAIN)
     _box(ax, 66, 17, 17, 15, "Fitted arm", ["RF · XGBoost · FT-T", "refit on", "depleted data"], "#555555", FACE_GREY)
-    _box(ax, 66, 0, 17, 15, "In-context arm", ["TabICL · TabPFN-3", "context removed", "no refit"], "#555555", FACE_GREY)
+    _box(ax, 66, 0, 17, 15, "In-context arm", ["TabICLv2 · TabPFN-3", "context removed", "no refit"], "#555555", FACE_GREY)
     _box(ax, 87, 6, 13, 20, "One test set", [f"{_n(v['test_rows'])} rows", f"✓ {v['manifests_test_set']} runs"],
          C_MAIN, FACE_MAIN)
     _arrow(ax, (18, 24.5), (22, 18))

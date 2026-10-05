@@ -14,6 +14,7 @@ output:     desc_depletion_conditions.csv, desc_depletion_composition.csv, desc_
 '''
 ##################################################
 import numpy as np, pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt, seaborn as sns
 import matplotlib.ticker as mticker
 from matplotlib.colors import LogNorm
@@ -46,7 +47,6 @@ def _save(fig, path) -> None:
     plt.close(fig)
     print(f"      [---] written {path.name}")
 
-
 def load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     assert DRAW_ANCHOR == con.ANCHOR_REGION, f"draw build anchor {DRAW_ANCHOR} differs from con.ANCHOR_REGION {con.ANCHOR_REGION}"
     context = _load_context_frame()
@@ -68,7 +68,6 @@ def load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     print(f"    [+++] inputs loaded - context rows {len(context)}, conditions {len(counts)}, draw rows {len(draws)}")
     return context, draws, counts
 
-
 def condition_frames(context: pd.DataFrame, draws: pd.DataFrame) -> dict[str, pd.DataFrame]:
     ctx_ents = set(context['orgpermid'])
     anchor_ents = set(context.loc[context['lvl3permid'].eq(con.ANCHOR_REGION), 'orgpermid'])
@@ -80,7 +79,6 @@ def condition_frames(context: pd.DataFrame, draws: pd.DataFrame) -> dict[str, pd
         assert set(d.loc[~d['is_anchor'], 'orgpermid']) == ctx_ents - anchor_ents, f"{_tag(level, draw)}: non-anchor block incomplete"
         frames[_tag(level, draw)] = context.loc[context['orgpermid'].isin(ents)]
     return frames
-
 
 def condition_table(frames: dict[str, pd.DataFrame], counts: pd.DataFrame) -> pd.DataFrame:
     records = []
@@ -121,7 +119,6 @@ def condition_table(frames: dict[str, pd.DataFrame], counts: pd.DataFrame) -> pd
     out[['level', 'draw', 'target_rows', 'overshoot_rows']] = out[['level', 'draw', 'target_rows', 'overshoot_rows']].astype('Int64')
     return out.sort_values(['level', 'draw'], ascending=[False, True], na_position='first').reset_index(drop=True)
 
-
 def composition_table(frames: dict[str, pd.DataFrame]) -> pd.DataFrame:
     parts = []
     for tag, f in frames.items():
@@ -139,7 +136,6 @@ def composition_table(frames: dict[str, pd.DataFrame]) -> pd.DataFrame:
     out['pool_share_delta'] = out['pool_share'] - out['pool_share_undepl']
     return out[['condition', 'lvl3permid', 'tier', 'rows', 'entities', 'pool_share', 'pool_share_undepl', 'pool_share_delta']]
 
-
 def level_table(cond: pd.DataFrame) -> pd.DataFrame:
     cols = ['anchor_rows', 'anchor_entities', 'overshoot_rows', 'overshoot_share', 'anchor_pool_share', 'anchor_val_share',
             'context_rows', 'target_mean_delta', 'mean_delta_se_units', 'target_std_ratio', 'wasserstein_1']
@@ -149,16 +145,15 @@ def level_table(cond: pd.DataFrame) -> pd.DataFrame:
     assert out['n_draws'].sum() == len(dep)
     return out.sort_values('level', ascending=False).reset_index(drop=True)
 
-
 def plot_pool_share(cond: pd.DataFrame, comp: pd.DataFrame, levels: pd.DataFrame) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     fig, ax = plt.subplots(figsize=(10, 6))
     base = comp.loc[comp['condition'].eq(UNDEPL) & comp['tier'].eq('tier1') & comp['lvl3permid'].ne(con.ANCHOR_REGION)]
-    for i, (_, r) in enumerate(base.sort_values('rows').iterrows()):
+    base = base.sort_values('rows')
+    for _, r in base.iterrows():
         eq = r['lvl3permid'] == con.EQUAL_N_REGION
         ax.axvline(r['rows'], color="#d9534f" if eq else "#cccccc", linestyle=":", linewidth=1.3 if eq else 0.9, zorder=1)
-        ax.text(r['rows'], 1.0 if i % 2 == 0 else 0.86, str(int(r['lvl3permid'])), transform=ax.get_xaxis_transform(),
-                rotation=90, ha='right', va='top', fontsize=7.5, color="#d9534f" if eq else "#888888")
     dep = cond.loc[cond['condition'].ne(UNDEPL)]
     und = cond.loc[cond['condition'].eq(UNDEPL)]
     ax.scatter(dep['anchor_rows'], dep['anchor_pool_share'], color="#1f4e79", s=16, alpha=0.45, edgecolor='none', zorder=2,
@@ -172,9 +167,21 @@ def plot_pool_share(cond: pd.DataFrame, comp: pd.DataFrame, levels: pd.DataFrame
     ax.xaxis.set_major_formatter(mticker.StrMethodFormatter("{x:,.0f}"))
     ax.xaxis.set_minor_locator(mticker.NullLocator())
     ax.yaxis.set_major_formatter(mticker.PercentFormatter(1.0))
-    ax.set_title(f"Anchor Share of the Training Pool under Depletion ({con.ANCHOR_REGION})", pad=15, fontweight='bold')
-    ax.set_xlabel("Realised anchor rows, train+val (log scale); dotted: Tier-1 regions' train+val rows", labelpad=10)
-    ax.set_ylabel("Anchor rows / context rows")
+    # region names on a top axis at each reference line - inside the axes the long names would cross the data
+    top = ax.secondary_xaxis('top')
+    top.set_xticks(base['rows'].to_numpy(), labels=[con.REGION_LABELS[r] for r in base['lvl3permid']])
+    top.xaxis.set_minor_locator(mticker.NullLocator())
+    top.tick_params(axis='x', rotation=90, labelsize=8.5 * con.FONT_SCALE, colors="#888888", length=0)
+    for lab, r in zip(top.get_xticklabels(), base['lvl3permid']):
+        if r == con.EQUAL_N_REGION:
+            lab.set_color("#d9534f")
+            lab.set_fontweight('bold')
+    top.spines['top'].set_visible(False)
+    ax.set_title(f"Anchor Share of the Pooled Training Set under Depletion ({con.REGION_LABELS[con.ANCHOR_REGION]})\n"
+                 f"dotted: training rows of the other {len(base)} Tier-1 regions; red: equal-N region",
+                 pad=15, fontweight='bold')
+    ax.set_xlabel("Realised anchor training rows (fit + validation, log scale)", labelpad=10)
+    ax.set_ylabel("Anchor share of the pooled training set")
     ax.set_ylim(bottom=0)
     ax.legend(frameon=False, loc='lower right')
     ax.grid(True, axis='y', linestyle="--", alpha=0.5)
@@ -182,9 +189,17 @@ def plot_pool_share(cond: pd.DataFrame, comp: pd.DataFrame, levels: pd.DataFrame
     _style(ax)
     _save(fig, con.VIZ_DESC_POOL_SHARE)
 
+def _cond_label(tag: str) -> str:
+    """depl_L350_d0 -> L350 #1 (draws numbered from 1, as in the draw-distribution figure); undepl -> full."""
+    if tag == UNDEPL:
+        return 'full'
+    level, draw = tag.replace('depl_', '').rsplit('_d', 1)
+    return f"{level} #{int(draw) + 1}"
+
 
 def plot_target(frames: dict[str, pd.DataFrame], cond: pd.DataFrame) -> None:
     plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
     order = cond['condition'].tolist()
     long = pd.concat([f.loc[f['lvl3permid'].eq(con.ANCHOR_REGION), ['esg_combined_score']].assign(condition=t)
                       for t, f in frames.items()], ignore_index=True)
@@ -200,20 +215,20 @@ def plot_target(frames: dict[str, pd.DataFrame], cond: pd.DataFrame) -> None:
     ax.axhline(full_median, color="#d9534f", linestyle=":", linewidth=1.3, zorder=0)
     y_max = long['esg_combined_score'].max()
     for i, t in enumerate(order):
-        ax.text(i, y_max * 1.02, f"n={n[t]:,}".replace(",", "."), ha='left', va='bottom', rotation=45,
-                fontsize=8, color="#555555", fontstyle='italic')
+        ax.text(i, y_max * 1.02, f"n={n[t]:,}", ha='left', va='bottom', rotation=45,
+                fontsize=8 * con.FONT_SCALE, color="#555555", fontstyle='italic')
     ax.set_ylim(top=y_max * 1.15)
     ax.set_xticks(range(len(order)))
-    ax.set_xticklabels([t.replace('depl_', '') for t in order], rotation=45, ha='right', fontsize=9)
-    ax.set_title(f"Anchor Target Distribution per Depletion Condition ({con.ANCHOR_REGION})\n"
-                 f"Retained train+val rows; dotted: undepleted median", pad=15, fontweight='bold')
-    ax.set_xlabel("Condition", labelpad=10)
+    ax.set_xticklabels(['undepleted' if t == UNDEPL else t.replace('depl_', '') for t in order],
+                       rotation=45, ha='right', fontsize=9 * con.FONT_SCALE)
+    ax.set_title(f"Anchor Target Distribution per Depletion Condition ({con.REGION_LABELS[con.ANCHOR_REGION]})\n"
+                 f"retained anchor training rows (fit + validation); dotted: undepleted median", pad=15, fontweight='bold')
+    ax.set_xlabel("Condition (level, draw)", labelpad=10)
     ax.set_ylabel("ESG Combined Score")
     ax.grid(True, axis='y', linestyle="--", alpha=0.5)
     ax.grid(False, axis='x')
     _style(ax)
     _save(fig, con.VIZ_DESC_DEPL_TARGET)
-
 
 if __name__ == '__main__':
     print(f"\n[°°°] building depletion descriptives - anchor {con.ANCHOR_REGION} [°°°]\n")

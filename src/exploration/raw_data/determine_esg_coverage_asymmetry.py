@@ -11,11 +11,8 @@ purpose:    make the region dependence of ESG-rating coverage visible:
             expected misassignment); regions with fy_resolution below
             COVERAGE_MIN_RESOLUTION are marked as not interpretable in both panels.
             the rated side is matched through ws_cmpid_bridged (link resolved via the
-            CUSIP bridge, see build_raw_esg_scores); the unbridged resolution is
-            reported alongside. the panel itself does not use the bridge - figure
-            captions must say so
-output:     VIZ_ESG_COVERAGE - panel A: coverage per region with resolution rate,
-            panel B: coverage per Tier-1 region over time
+            CUSIP bridge, see build_raw_esg_scores);
+output:     VIZ_ESG_COVERAGE - coverage per region (pooled firm-years) for the introduction;
 
             run 2026-09-26, BEFORE the CUSIP bridge (numerator via worldscopecmpid):
             rated (cmpid, year) keys 126047, found in the universe 88283 (0.7004);
@@ -57,7 +54,9 @@ output:     VIZ_ESG_COVERAGE - panel A: coverage per region with resolution rate
 import pandas as pd
 import numpy as np
 import config as con
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 
 LINK = 'ws_cmpid_bridged'   
 from matplotlib.patches import Patch
@@ -72,17 +71,13 @@ print(f"    [+++] loaded scores {scores.shape}, universe {universe.shape}")
 
 assert not universe.duplicated(['worldscopecmpid', 'year']).any(), "duplicate (cmpid, year) in the universe"
 
-
-
 print(f"    [+++] flagging rated universe firm-years...")
-
 
 rated_keys = (scores.dropna(subset=[LINK])[[LINK, 'year']]
               .rename(columns={LINK: 'worldscopecmpid'})
               .drop_duplicates())
 key_u = pd.MultiIndex.from_frame(universe[['worldscopecmpid', 'year']])
 key_r = pd.MultiIndex.from_frame(rated_keys)
-
 
 universe['rated'] = key_u.isin(key_r)
 n_found = key_r.isin(key_u).sum()
@@ -94,13 +89,10 @@ print(f"      [---] rated (cmpid, year) keys: {len(key_r)}, found in the univers
 print(f"      [---] universe firm-years rated: {universe['rated'].sum()} of {len(universe)} "
       f"({universe['rated'].mean():.4f})")
 
-
-
 print(f"    [+++] computing coverage per region and per region-year...")
 tier_map = {**{r: 'Tier 1' for r in con.TIER1_REGS},
             **{r: 'Tier 2' for r in con.TIER2_REGS},
             **{r: 'Tier 3' for r in con.TIER3_REGS}}
-
 
 pooled = (universe.groupby('lvl3permid', dropna=False)
           .agg(firm_years=('rated', 'size'), rated=('rated', 'sum'), firms=('worldscopecmpid', 'nunique'))
@@ -130,11 +122,8 @@ print(yearly.dropna(subset=['lvl3permid'])
       .pivot(index='lvl3permid', columns='year', values='coverage')
       .to_string(float_format='{:.3f}'.format))
 
-
-
 print(f"    [+++] diagnosing interpretability per region...")
 xwalk = pd.read_parquet(con.REF_WS_NATION_XWALK)
-
 
 ent = scores.drop_duplicates('orgpermid')[['orgpermid', 'worldscopecmpid', LINK, 'lvl3permid']]
 ent = ent.assign(has_cmpid=ent['worldscopecmpid'].notna(),
@@ -145,18 +134,15 @@ diag = ent.groupby('lvl3permid', dropna=False).agg(rated_entities=('orgpermid', 
 diag['share_no_cmpid'] = 1 - diag['with_cmpid'] / diag['rated_entities']
 diag['entity_resolution'] = diag['resolved'] / diag['with_cmpid']
 
-
 fy = scores.loc[scores['worldscopecmpid'].notna(), ['worldscopecmpid', LINK, 'year', 'lvl3permid']]
 fy = fy.assign(found=pd.MultiIndex.from_frame(fy[[LINK, 'year']]).isin(key_u),
                found_raw=pd.MultiIndex.from_frame(fy[['worldscopecmpid', 'year']]).isin(key_u))
 diag['fy_resolution'] = fy.groupby('lvl3permid', dropna=False)['found'].mean()
 diag['fy_resolution_unbridged'] = fy.groupby('lvl3permid', dropna=False)['found_raw'].mean()
 
-
 firms = (universe.drop_duplicates('worldscopecmpid')
          .merge(xwalk[['ws_nation', 'purity']], on='ws_nation', how='left', validate='many_to_one'))
 exp_misassigned = (1 - firms['purity']).groupby(firms['lvl3permid'], dropna=False).mean()
-
 
 report = (pooled.set_index('lvl3permid')
           .join(diag[['rated_entities', 'share_no_cmpid', 'entity_resolution', 'fy_resolution',
@@ -168,89 +154,61 @@ print(report.to_string(float_format='{:.4f}'.format))
 
 
 ### plot ---------------------------------------------------------
-print(f"    [+++] plotting coverage asymmetry...")
+print(f"    [+++] plotting coverage per region...")
 plt.style.use('seaborn-v0_8-whitegrid')
+plt.rcParams['font.size'] = mpl.rcParamsDefault['font.size'] * con.FONT_SCALE
 
 tier_colors = {'Tier 1': "#1f4e79", 'Tier 2': "#6fa8dc", 'Tier 3': "#a6a6a6", 'not in panel': "#a6a6a6"}
-color_resolution = "#d9534f"
-
-fig, (ax_a, ax_b) = plt.subplots(1, 2, figsize=(16, 7), gridspec_kw={'width_ratios': [1, 1.25]})
+color_ref = "#d9534f"
 
 plot_a = report.loc[report.index.notna() & report['coverage'].notna()].sort_values('coverage')
+assert plot_a['tier'].isin(list(tier_colors)).all(), f"tier without a colour: {sorted(set(plot_a['tier']) - set(tier_colors))}"
 y = np.arange(len(plot_a))
-labels = [f"{int(r)}{'*' if t == 'Tier 2' else ''}  (n={n:,})".replace(',', '.')
+labels = [f"{con.REGION_LABELS[int(r)]}{'*' if t == 'Tier 2' else ''}  (n={n:,})"
           for r, t, n in zip(plot_a.index, plot_a['tier'], plot_a['firms'])]
 
 unreliable = (plot_a['fy_resolution'] < con.COVERAGE_MIN_RESOLUTION).to_numpy()
 bar_colors = plot_a['tier'].map(tier_colors).tolist()
 print(f"      [---] regions below resolution {con.COVERAGE_MIN_RESOLUTION}: {[int(r) for r in plot_a.index[unreliable]]}")
 
-ax_a.barh(y[~unreliable], plot_a['coverage'][~unreliable], height=0.7, zorder=2,
-          color=[c for c, u in zip(bar_colors, unreliable) if not u])
-ax_a.barh(y[unreliable], plot_a['coverage'][unreliable], height=0.7, zorder=2, color='white', hatch='///',
-          edgecolor=[c for c, u in zip(bar_colors, unreliable) if u])
-ax_a.scatter(plot_a['fy_resolution'], y, marker='D', s=28, color=color_resolution, zorder=3)
-for yi, cov, res in zip(y[unreliable], plot_a['coverage'][unreliable], plot_a['fy_resolution'][unreliable]):
-    ax_a.text(max(cov, res) + 0.025, yi, f"not interpretable - {res:.0%} of rated firm-years resolvable",
-              va='center', fontsize=8, color='#555555', fontstyle='italic')
+fig, ax = plt.subplots(figsize=(10, 7))
+ax.barh(y[~unreliable], plot_a['coverage'][~unreliable], height=0.7, zorder=2,
+        color=[c for c, u in zip(bar_colors, unreliable) if not u])
+ax.barh(y[unreliable], plot_a['coverage'][unreliable], height=0.7, zorder=2, color='white', hatch='///',
+        edgecolor=[c for c, u in zip(bar_colors, unreliable) if u])
+glob_cov = universe['rated'].mean()
+ax.axvline(glob_cov, color=color_ref, ls=":", lw=1.5, zorder=3)
 
-ax_a.set_yticks(y)
-ax_a.set_yticklabels(labels, fontsize=9)
-ax_a.set_xlim(0, 1.02)
-ax_a.set_title(f"Rating Coverage per Region\nrated / Worldscope firm-years, {con.YEAR_MIN}-{con.YEAR_MAX}, CUSIP-bridged link",
-               pad=15, fontweight='bold')
-ax_a.set_xlabel("Share of firm-years", labelpad=10)
-ax_a.set_ylabel("Level 3 PermID (n = Worldscope firms)")
+ax.set_yticks(y)
+ax.set_yticklabels(labels)
+ax.set_ylim(-0.5, len(y) - 0.5)
+ax.set_xlim(0, plot_a['coverage'].max() * 1.12)
+ax.xaxis.set_major_formatter(mticker.PercentFormatter(1.0))
+ax.set_title(f"ESG Rating Coverage per Region\nrated share of Worldscope firm-years, {con.YEAR_MIN}–{con.YEAR_MAX}",
+             pad=15, fontweight='bold')
+ax.set_xlabel("Rated share of firm-years", labelpad=10)
+ax.set_ylabel("Region (n = Worldscope firms)")
 
 present = set(plot_a['tier'])
 handles = [Patch(facecolor=tier_colors[t], label=t) for t in ('Tier 1', 'Tier 2') if t in present]
+if 'Tier 2' in present:
+    handles[-1].set_label('Tier 2 (*)')
 if present & {'Tier 3', 'not in panel'}:
     handles.append(Patch(facecolor="#a6a6a6", label='Tier 3 / not in panel'))
+handles.append(Line2D([], [], color=color_ref, ls=':', lw=1.5, label=f"all regions: {glob_cov:.1%}"))
 if unreliable.any():
     handles.append(Patch(facecolor='white', edgecolor="#1f4e79", hatch='///',
-                         label=f"Resolution < {con.COVERAGE_MIN_RESOLUTION:.0%}: not interpretable"))
-handles.append(Line2D([], [], ls='none', marker='D', ms=6, color=color_resolution,
-                      label='Rated firm-years resolvable in Worldscope (CUSIP-bridged)'))
-ax_a.legend(handles=handles, loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=2, frameon=False, fontsize=9)
-ax_a.grid(True, axis='x', linestyle="--", alpha=0.5)
-ax_a.grid(False, axis='y')
-
-t1 = yearly.loc[yearly['lvl3permid'].isin(con.TIER1_REGS)]
-order = [r for r in plot_a.index[::-1] if r in con.TIER1_REGS]
-cmap = plt.get_cmap('tab20')
-
-unreliable_regs = set(plot_a.index[unreliable])
-
-for i, reg in enumerate(order):
-    s = t1.loc[t1['lvl3permid'] == reg].sort_values('year')
-    if reg in unreliable_regs:
-        ax_b.plot(s['year'], s['coverage'], color='#a6a6a6', lw=1.5, ls=':', marker='o', ms=3,
-                  label=f"{reg} (not interpretable)")
-    else:
-        ax_b.plot(s['year'], s['coverage'], color=cmap(i % 20), lw=1.5, marker='o', ms=3, label=str(reg))
-glob = universe.groupby('year')['rated'].mean()
-ax_b.plot(glob.index, glob.values, color='#333333', lw=2.2, ls='--', label='All regions')
-
-ax_b.set_ylim(0, max(t1['coverage'].max(), glob.max()) * 1.12)
-ax_b.axvspan(con.YEAR_MAX - 0.5, con.YEAR_MAX + 0.5, color='#cccccc', alpha=0.4, zorder=0)
-ax_b.text(con.YEAR_MAX, ax_b.get_ylim()[1], "possible\nfinalization lag", ha='center', va='top',
-          fontsize=8, color='#555555', fontstyle='italic')
-
-ax_b.set_xticks(range(con.YEAR_MIN, con.YEAR_MAX + 1, 2))
-ax_b.set_title("Rating Coverage over Time\nTier-1 regions", pad=15, fontweight='bold')
-ax_b.set_xlabel("Year", labelpad=10)
-ax_b.set_ylabel("Share of firm-years")
-ax_b.legend(title="Level 3 PermID", bbox_to_anchor=(1.01, 1), loc='upper left', frameon=False, fontsize=8)
-ax_b.grid(True, axis='y', linestyle="--", alpha=0.5)
-ax_b.grid(False, axis='x')
-
-for ax in (ax_a, ax_b):
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('#cccccc')
-    ax.spines['bottom'].set_color('#cccccc')
+                         label=f"not interpretable (resolution < {con.COVERAGE_MIN_RESOLUTION:.0%})"))
+ax.legend(handles=handles, loc='upper center', bbox_to_anchor=(0.5, -0.12), ncol=min(len(handles), 4), frameon=False)
+ax.grid(True, axis='x', linestyle="--", alpha=0.5)
+ax.grid(False, axis='y')
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['left'].set_color('#cccccc')
+ax.spines['bottom'].set_color('#cccccc')
 
 plt.tight_layout()
+con.VIZ_ESG_COVERAGE.parent.mkdir(parents=True, exist_ok=True)
 plt.savefig(con.VIZ_ESG_COVERAGE, dpi=600, bbox_inches='tight')
 plt.show()
 
